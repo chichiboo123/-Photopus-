@@ -458,10 +458,10 @@ export default function PhotoCapture({ frameType, topperData, onPhotosCaptured, 
         </p>
       </div>
 
-      <Card className="card-shadow mb-8">
-        <CardContent className="p-8">
+      <Card className="card-shadow mb-6">
+        <CardContent className="p-4 md:p-8">
           {/* 카메라 미리보기 영역 */}
-          <div className="relative bg-gray-900 rounded-2xl overflow-hidden mb-6" style={{ aspectRatio: '4/3' }}>
+          <div className="relative bg-gray-900 rounded-2xl overflow-hidden mb-4 max-h-[60vh]" style={{ aspectRatio: '16/9' }}>
             <video
               ref={videoRef}
               autoPlay
@@ -501,7 +501,7 @@ export default function PhotoCapture({ frameType, topperData, onPhotosCaptured, 
           </div>
 
           {/* 카메라 컨트롤 */}
-          <div className="flex justify-center items-center space-x-6 mb-6">
+          <div className="flex justify-center items-center space-x-4 mb-4">
             <Button
               variant="outline"
               size="lg"
@@ -536,11 +536,11 @@ export default function PhotoCapture({ frameType, topperData, onPhotosCaptured, 
 
           {/* 토퍼 컨트롤 */}
           {topperData.length > 0 && (
-            <div className="bg-white rounded-2xl p-6 mb-6 shadow-lg">
-              <h3 className="font-playful text-xl font-bold text-gray-800 mb-4 text-center">토퍼 설정</h3>
+            <div className="bg-white rounded-2xl p-4 mb-4 shadow-lg">
+              <h3 className="font-playful text-lg font-bold text-gray-800 mb-3 text-center">토퍼 설정</h3>
               
               {/* 토퍼 크기 조절 */}
-              <div className="mb-6">
+              <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   토퍼 크기: {Math.round(topperSize * 100)}%
                 </label>
