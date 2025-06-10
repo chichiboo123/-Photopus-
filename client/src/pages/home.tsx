@@ -27,6 +27,7 @@ export default function Home() {
   const [selectedFrame, setSelectedFrame] = useState<FrameType | null>(null);
   const [selectedToppers, setSelectedToppers] = useState<TopperData[]>([]);
   const [capturedPhotos, setCapturedPhotos] = useState<string[]>([]);
+  const [captureAspectRatio, setCaptureAspectRatio] = useState<number | undefined>(undefined);
   const [finalText, setFinalText] = useState("");
   const [stepCompleted, setStepCompleted] = useState([false, false, false, false]);
 
@@ -35,6 +36,7 @@ export default function Home() {
     setSelectedFrame(null);
     setSelectedToppers([]);
     setCapturedPhotos([]);
+    setCaptureAspectRatio(undefined);
     setFinalText("");
     setStepCompleted([false, false, false, false]);
   };

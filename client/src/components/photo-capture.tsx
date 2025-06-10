@@ -10,7 +10,7 @@ import { capturePhotoWithAR } from "@/lib/photo-utils";
 interface PhotoCaptureProps {
   frameType: FrameType;
   topperData: TopperData[];
-  onPhotosCaptured: (photos: string[]) => void;
+  onPhotosCaptured: (photos: string[], aspectRatio?: number) => void;
   onRemoveTopper: (topperId: string) => void;
 }
 
@@ -417,7 +417,18 @@ export default function PhotoCapture({ frameType, topperData, onPhotosCaptured, 
     );
 
     if (photo) {
-      setCapturedPhotos(prev => [...prev, photo]);
+      const newPhotos = [...capturedPhotos, photo];
+      setCapturedPhotos(newPhotos);
+      
+      // Calculate and pass aspect ratio from video
+      const video = videoRef.current;
+      const aspectRatio = video.videoWidth / video.videoHeight;
+      
+      // Check if we have enough photos for the frame type
+      const requiredPhotos = frameType === '4cut' ? 4 : frameType === '2cut' ? 2 : 1;
+      if (newPhotos.length >= requiredPhotos) {
+        onPhotosCaptured(newPhotos, aspectRatio);
+      }
     }
   };
 

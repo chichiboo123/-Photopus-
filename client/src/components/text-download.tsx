@@ -15,6 +15,7 @@ interface TextDownloadProps {
   finalText: string;
   onTextChange: (text: string) => void;
   onStartOver: () => void;
+  captureAspectRatio?: number;
 }
 
 export default function TextDownload({ 
@@ -23,7 +24,8 @@ export default function TextDownload({
   photos, 
   finalText, 
   onTextChange, 
-  onStartOver 
+  onStartOver,
+  captureAspectRatio
 }: TextDownloadProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [finalImageData, setFinalImageData] = useState<string | null>(null);
@@ -62,7 +64,8 @@ export default function TextDownload({
         photos,
         finalText,
         textStyle,
-        frameColor
+        frameColor,
+        captureAspectRatio
       ).then((imageData) => {
         setFinalImageData(imageData);
       });
