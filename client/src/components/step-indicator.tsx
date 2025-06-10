@@ -16,7 +16,7 @@ export default function StepIndicator({ currentStep }: StepIndicatorProps) {
     <div className="mb-8">
       <div className="flex justify-center items-center space-x-4">
         {steps.map((step, index) => (
-          <React.Fragment key={step.number}>
+          <div key={step.number} className="flex items-center">
             <div className="flex items-center">
               <div 
                 className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg transition-all duration-300 ${
@@ -38,9 +38,9 @@ export default function StepIndicator({ currentStep }: StepIndicatorProps) {
               </span>
             </div>
             {index < steps.length - 1 && (
-              <div className="w-8 h-1 bg-gray-300 rounded"></div>
+              <div className="w-8 h-1 bg-gray-300 rounded ml-4"></div>
             )}
-          </React.Fragment>
+          </div>
         ))}
       </div>
     </div>

@@ -30,21 +30,23 @@ export default function TextDownload({
   const [textStyle, setTextStyle] = useState({
     bold: false,
     italic: false,
-    color: '#FFFFFF'
+    color: '#FFFFFF',
+    fontFamily: 'Noto Sans KR'
   });
   const [showSuccess, setShowSuccess] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
     if (canvasRef.current && photos.length > 0) {
-      const imageData = generateFinalImage(
+      generateFinalImage(
         canvasRef.current,
         frameType,
         photos,
         finalText,
         textStyle
-      );
-      setFinalImageData(imageData);
+      ).then((imageData) => {
+        setFinalImageData(imageData);
+      });
     }
   }, [frameType, photos, finalText, textStyle]);
 
@@ -95,6 +97,10 @@ export default function TextDownload({
     setTextStyle(prev => ({ ...prev, color }));
   };
 
+  const handleFontChange = (fontFamily: string) => {
+    setTextStyle(prev => ({ ...prev, fontFamily }));
+  };
+
   const colorOptions = [
     { label: "흰색", value: "#FFFFFF" },
     { label: "검정색", value: "#000000" },
@@ -102,6 +108,16 @@ export default function TextDownload({
     { label: "파란색", value: "#0000FF" },
     { label: "분홍색", value: "#FF69B4" },
     { label: "초록색", value: "#00FF00" },
+  ];
+
+  const fontOptions = [
+    { label: "Noto Sans KR", value: "Noto Sans KR" },
+    { label: "Do Hyeon", value: "Do Hyeon" },
+    { label: "Jua", value: "Jua" },
+    { label: "Nanum Gothic", value: "Nanum Gothic" },
+    { label: "Black Han Sans", value: "Black Han Sans" },
+    { label: "Cute Font", value: "Cute Font" },
+    { label: "Gamja Flower", value: "Gamja Flower" },
   ];
 
   return (
@@ -180,6 +196,19 @@ export default function TextDownload({
                         />
                         <span>{option.label}</span>
                       </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              
+              <Select value={textStyle.fontFamily} onValueChange={handleFontChange}>
+                <SelectTrigger className="w-40 rounded-xl">
+                  <SelectValue placeholder="폰트" />
+                </SelectTrigger>
+                <SelectContent>
+                  {fontOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      <span style={{ fontFamily: option.value }}>{option.label}</span>
                     </SelectItem>
                   ))}
                 </SelectContent>

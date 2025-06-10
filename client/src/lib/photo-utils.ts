@@ -16,6 +16,7 @@ interface TextStyle {
   bold: boolean;
   italic: boolean;
   color: string;
+  fontFamily?: string;
 }
 
 export function capturePhotoWithAR(
@@ -234,8 +235,9 @@ function drawTextOverlay(
   let fontSize = 24;
   let fontWeight = textStyle.bold ? 'bold' : 'normal';
   let fontStyle = textStyle.italic ? 'italic' : 'normal';
+  let fontFamily = textStyle.fontFamily || 'Noto Sans KR';
   
-  ctx.font = `${fontStyle} ${fontWeight} ${fontSize}px Arial`;
+  ctx.font = `${fontStyle} ${fontWeight} ${fontSize}px ${fontFamily}`;
   ctx.fillStyle = textStyle.color;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';

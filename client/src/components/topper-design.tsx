@@ -31,7 +31,16 @@ export default function TopperDesign({ onTopperSelect, selectedTopper, onNext }:
     mutationFn: async (file: File) => {
       const formData = new FormData();
       formData.append('image', file);
-      const response = await apiRequest('POST', '/api/upload-topper', formData);
+      
+      const response = await fetch('/api/upload-topper', {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Upload failed: ${response.statusText}`);
+      }
+      
       return response.json();
     },
     onSuccess: (data) => {
