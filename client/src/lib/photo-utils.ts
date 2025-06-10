@@ -215,13 +215,13 @@ export async function generateFinalImage(
 function getCanvasSize(frameType: FrameType): { width: number; height: number } {
   switch (frameType) {
     case '4cut':
-      return { width: 400, height: 600 }; // 2x2 grid with extra space for text
+      return { width: 400, height: 700 }; // 2x2 grid with extended space for text
     case '2cut':
-      return { width: 400, height: 500 }; // 1x2 layout
+      return { width: 400, height: 600 }; // 1x2 layout with extended space
     case '1cut':
-      return { width: 400, height: 400 }; // Square aspect ratio for single photo
+      return { width: 400, height: 550 }; // Single photo with extended space
     default:
-      return { width: 400, height: 600 };
+      return { width: 400, height: 700 };
   }
 }
 
@@ -233,7 +233,7 @@ function drawPhotosInGrid(
   canvasHeight: number
 ): Promise<void> {
   return new Promise((resolve) => {
-    const photoArea = canvasHeight - 100; // Leave 100px for text
+    const photoArea = canvasHeight - 150; // Leave 150px for text area
     let photoWidth: number, photoHeight: number, cols: number, rows: number;
 
     switch (frameType) {
@@ -320,8 +320,9 @@ function drawTextOverlay(
   ctx.shadowOffsetX = 1;
   ctx.shadowOffsetY = 1;
 
-  // Draw text at bottom of canvas
-  const textY = canvasHeight - 50;
+  // Draw text in the dedicated frame area below photos
+  const photoArea = canvasHeight - 150;
+  const textY = photoArea + 75; // Center text in the 150px text area
   ctx.fillText(text, canvasWidth / 2, textY);
 
   ctx.restore();
