@@ -256,13 +256,13 @@ export async function generateFinalImage(
 
 function getCanvasSize(frameType: FrameType, aspectRatio: number = 4/3): { width: number; height: number } {
   const isVertical = aspectRatio < 1;
-  const textAreaHeight = 150;
+  const textAreaHeight = 80; // Reduced text area height
   
   // Base dimensions that work well for photos
   const basePhotoSize = 300;
   
   switch (frameType) {
-    case '4cut':
+    case '4cut': {
       if (isVertical) {
         // Vertical: 2x2 grid
         const photoWidth = basePhotoSize * aspectRatio;
@@ -280,31 +280,24 @@ function getCanvasSize(frameType: FrameType, aspectRatio: number = 4/3): { width
           height: (photoHeight * 2) + 30 + textAreaHeight
         };
       }
-    case '2cut':
-      if (isVertical) {
-        // Vertical: 1x2 layout (stacked vertically)
-        const photoWidth = basePhotoSize * aspectRatio;
-        const photoHeight = basePhotoSize;
-        return {
-          width: photoWidth + 20,
-          height: (photoHeight * 2) + 30 + textAreaHeight
-        };
-      } else {
-        // Horizontal: 2x1 layout (side by side)
-        const photoWidth = basePhotoSize;
-        const photoHeight = basePhotoSize / aspectRatio;
-        return {
-          width: (photoWidth * 2) + 30,
-          height: photoHeight + 20 + textAreaHeight
-        };
-      }
-    case '1cut':
+    }
+    case '2cut': {
+      // Always use vertical stacking for 2-cut photos
+      const photoWidth = basePhotoSize * (isVertical ? aspectRatio : 1);
+      const photoHeight = basePhotoSize * (isVertical ? 1 : 1/aspectRatio);
+      return {
+        width: photoWidth + 20,
+        height: (photoHeight * 2) + 30 + textAreaHeight
+      };
+    }
+    case '1cut': {
       const photoWidth = basePhotoSize * (isVertical ? aspectRatio : 1);
       const photoHeight = basePhotoSize * (isVertical ? 1 : 1/aspectRatio);
       return {
         width: photoWidth + 40,
-        height: photoHeight + 40 + textAreaHeight
+        height: photoHeight + 80 // Reduced empty space below photo
       };
+    }
     default:
       return { width: 400, height: 700 };
   }
@@ -319,7 +312,7 @@ function drawPhotosInGrid(
   aspectRatio: number = 4/3
 ): Promise<void> {
   return new Promise((resolve) => {
-    const photoArea = canvasHeight - 150; // Leave 150px for text area
+    const photoArea = canvasHeight - 80; // Leave 80px for text area (reduced)
     const isVertical = aspectRatio < 1;
     let photoWidth: number, photoHeight: number, cols: number, rows: number;
 
@@ -331,19 +324,11 @@ function drawPhotosInGrid(
         photoHeight = (photoArea - 30) / 2;
         break;
       case '2cut':
-        if (isVertical) {
-          // Vertical photos: stack vertically (1x2)
-          cols = 1;
-          rows = 2;
-          photoWidth = canvasWidth - 20;
-          photoHeight = (photoArea - 30) / 2;
-        } else {
-          // Horizontal photos: arrange side by side (2x1)
-          cols = 2;
-          rows = 1;
-          photoWidth = (canvasWidth - 30) / 2;
-          photoHeight = photoArea - 20;
-        }
+        // Always stack vertically for 2-cut photos
+        cols = 1;
+        rows = 2;
+        photoWidth = canvasWidth - 20;
+        photoHeight = (photoArea - 30) / 2;
         break;
       case '1cut':
         cols = 1;
@@ -417,8 +402,8 @@ function drawTextOverlay(
   ctx.shadowOffsetY = 1;
 
   // Draw text in the dedicated frame area below photos
-  const photoArea = canvasHeight - 150;
-  const textY = photoArea + 75; // Center text in the 150px text area
+  const photoArea = canvasHeight - 80;
+  const textY = photoArea + 40; // Center text in the 80px text area
   ctx.fillText(text, canvasWidth / 2, textY);
 
   ctx.restore();

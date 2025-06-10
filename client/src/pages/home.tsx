@@ -106,7 +106,7 @@ export default function Home() {
           <h1 className="font-playful text-4xl md:text-6xl font-bold text-primary mb-2 animate-bounce-gentle">
             📸 포토퍼스
           </h1>
-          <p className="text-gray-600 text-lg font-medium">떠다니는 토퍼와 함께 사진을 찰칵 찍어보세요!</p>
+          <p className="text-gray-600 text-lg font-medium">모두를 위한 사진놀이</p>
         </div>
       </header>
 
