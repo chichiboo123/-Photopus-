@@ -103,7 +103,7 @@ export default function PhotoCapture({ frameType, topperData, onPhotosCaptured, 
       // Create expanded topper list based on individual counts (filter out 0 count)
       const expandedToppers: { topper: TopperData; instanceIndex: number; id: string }[] = [];
       topperData.forEach((topper) => {
-        const count = topperCounts[topper.id] || 1;
+        const count = topperCounts[topper.id] !== undefined ? topperCounts[topper.id] : 1;
         if (count > 0) {
           for (let i = 0; i < count; i++) {
             const instanceId = `${topper.id}_${i}`;
@@ -126,9 +126,9 @@ export default function PhotoCapture({ frameType, topperData, onPhotosCaptured, 
         const rotateOffset = isAnimating ? Math.cos(time * 0.7 + index * 0.3) * 5 : 0;
         
         if (customPos) {
-          // Apply floating animation to custom dragged positions
-          topperX = customPos.x + (isAnimating ? rotateOffset * 0.3 : 0);
-          topperY = customPos.y + (isAnimating ? floatOffset * 0.5 : 0);
+          // Apply full floating animation to custom dragged positions
+          topperX = customPos.x + (isAnimating ? rotateOffset : 0);
+          topperY = customPos.y + (isAnimating ? floatOffset : 0);
         } else {
           // Calculate default floating position
           if (totalToppers === 1) {
@@ -402,7 +402,10 @@ export default function PhotoCapture({ frameType, topperData, onPhotosCaptured, 
       topperData,
       showTopper,
       flipHorizontal,
-      flipVertical
+      flipVertical,
+      topperCounts,
+      topperPositions,
+      topperSize
     );
 
     if (photo) {

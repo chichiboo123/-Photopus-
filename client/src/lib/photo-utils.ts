@@ -26,7 +26,10 @@ export function capturePhotoWithAR(
   topperData: TopperData[],
   showTopper: boolean,
   flipHorizontal: boolean,
-  flipVertical: boolean
+  flipVertical: boolean,
+  topperCounts?: {[key: string]: number},
+  topperPositions?: {[key: string]: {x: number, y: number}},
+  topperSize?: number
 ): string | null {
   if (!video.videoWidth || !video.videoHeight) return null;
 
@@ -57,7 +60,7 @@ export function capturePhotoWithAR(
 
   // Draw AR toppers if enabled and landmarks detected
   if (showTopper && landmarks && landmarks.landmarks.length > 0 && topperData.length > 0) {
-    drawMultipleARToppers(ctx, landmarks, topperData, canvas.width, canvas.height);
+    drawMultipleARToppers(ctx, landmarks, topperData, canvas.width, canvas.height, topperCounts, topperPositions, topperSize);
   }
 
   // Restore context state
@@ -72,7 +75,10 @@ function drawMultipleARToppers(
   landmarks: FaceDetection,
   topperData: TopperData[],
   canvasWidth: number,
-  canvasHeight: number
+  canvasHeight: number,
+  topperCounts?: {[key: string]: number},
+  topperPositions?: {[key: string]: {x: number, y: number}},
+  topperSizeMultiplier: number = 1.0
 ): void {
   const faceBox = landmarks.boundingBox;
   const faceWidth = faceBox.width * canvasWidth;
