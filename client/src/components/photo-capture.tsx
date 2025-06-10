@@ -227,8 +227,8 @@ export default function PhotoCapture({ frameType, topperData, onPhotosCaptured, 
       let topperX, topperY;
       
       if (customPos) {
-        topperX = customPos.x;
-        topperY = customPos.y;
+        topperX = customPos.x * canvas.width;
+        topperY = customPos.y * canvas.height;
       } else {
         // Calculate default floating position
         const time = isAnimating ? Date.now() / 1000 : 0;
@@ -261,11 +261,14 @@ export default function PhotoCapture({ frameType, topperData, onPhotosCaptured, 
 
   const handleMouseDown = (e: React.MouseEvent) => {
     const topper = getTopperAtPosition(e.clientX, e.clientY);
-    if (topper) {
+    if (topper && canvasRef.current) {
+      const canvas = canvasRef.current;
       setDraggedTopper(topper.id);
+      const normalizedX = topper.x / canvas.width;
+      const normalizedY = topper.y / canvas.height;
       setDragOffset({
-        x: topper.x - (topperPositions[topper.id]?.x || 0),
-        y: topper.y - (topperPositions[topper.id]?.y || 0)
+        x: topper.x - (topperPositions[topper.id]?.x * canvas.width || normalizedX * canvas.width),
+        y: topper.y - (topperPositions[topper.id]?.y * canvas.height || normalizedY * canvas.height)
       });
     }
   };
@@ -310,11 +313,14 @@ export default function PhotoCapture({ frameType, topperData, onPhotosCaptured, 
     e.preventDefault();
     const touch = e.touches[0];
     const topper = getTopperAtPosition(touch.clientX, touch.clientY);
-    if (topper) {
+    if (topper && canvasRef.current) {
+      const canvas = canvasRef.current;
       setDraggedTopper(topper.id);
+      const normalizedX = topper.x / canvas.width;
+      const normalizedY = topper.y / canvas.height;
       setDragOffset({
-        x: topper.x - (topperPositions[topper.id]?.x || 0),
-        y: topper.y - (topperPositions[topper.id]?.y || 0)
+        x: topper.x - (topperPositions[topper.id]?.x * canvas.width || normalizedX * canvas.width),
+        y: topper.y - (topperPositions[topper.id]?.y * canvas.height || normalizedY * canvas.height)
       });
     }
   };
