@@ -46,7 +46,12 @@ export default function TopperDesign({ onTopperSelect, onRemoveTopper, selectedT
     },
     onSuccess: (data) => {
       setUploadedImage(data.imageData);
-      onTopperSelect({ type: 'upload', data: data.imageData });
+      const newTopper: TopperData = { 
+        type: 'upload', 
+        data: data.imageData, 
+        id: `upload_${Date.now()}_${Math.random().toString(36).substr(2, 9)}` 
+      };
+      onTopperSelect(newTopper);
       toast({
         title: "업로드 완료!",
         description: "이미지가 성공적으로 업로드되었어요.",
@@ -90,11 +95,16 @@ export default function TopperDesign({ onTopperSelect, onRemoveTopper, selectedT
   };
 
   const handleEmojiSelect = (emoji: string) => {
-    onTopperSelect({ type: 'emoji', data: emoji });
+    const newTopper: TopperData = { 
+      type: 'emoji', 
+      data: emoji, 
+      id: `emoji_${emoji}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}` 
+    };
+    onTopperSelect(newTopper);
   };
 
   const isEmojiSelected = (emoji: string) => {
-    return selectedTopper?.type === 'emoji' && selectedTopper.data === emoji;
+    return selectedToppers.some(topper => topper.type === 'emoji' && topper.data === emoji);
   };
 
   return (
@@ -169,9 +179,9 @@ export default function TopperDesign({ onTopperSelect, onRemoveTopper, selectedT
                 ))}
               </div>
               <Button 
-                onClick={() => selectedTopper && onNext()}
+                onClick={() => selectedToppers.length > 0 && onNext()}
                 className="button-secondary text-white px-8 py-3 rounded-2xl font-bold text-lg"
-                disabled={!selectedTopper}
+                disabled={selectedToppers.length === 0}
               >
                 <Check className="mr-2 w-4 h-4" />
                 선택 완료
@@ -181,11 +191,39 @@ export default function TopperDesign({ onTopperSelect, onRemoveTopper, selectedT
         </CardContent>
       </Card>
 
+      {/* Selected Toppers Display */}
+      {selectedToppers.length > 0 && (
+        <Card className="card-shadow mb-8">
+          <CardContent className="p-6">
+            <h3 className="font-playful text-xl font-bold text-gray-800 mb-4 text-center">선택된 토퍼들</h3>
+            <div className="flex flex-wrap gap-3 justify-center">
+              {selectedToppers.map((topper) => (
+                <div key={topper.id} className="relative">
+                  <div className="w-16 h-16 rounded-xl bg-gray-100 flex items-center justify-center border-2 border-primary">
+                    {topper.type === 'emoji' ? (
+                      <span className="text-2xl">{topper.data}</span>
+                    ) : (
+                      <img src={topper.data} alt="Topper" className="w-full h-full object-cover rounded-xl" />
+                    )}
+                  </div>
+                  <button
+                    onClick={() => onRemoveTopper(topper.id)}
+                    className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full text-xs hover:bg-red-600 transition-colors"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <div className="text-center mt-12">
         <Button 
           onClick={onNext}
           className="button-primary text-white px-12 py-4 rounded-2xl font-bold text-xl"
-          disabled={!selectedTopper}
+          disabled={selectedToppers.length === 0}
         >
           📸 사진 촬영하러 가기
         </Button>

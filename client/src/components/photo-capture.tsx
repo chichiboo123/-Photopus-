@@ -9,7 +9,7 @@ import { capturePhotoWithAR } from "@/lib/photo-utils";
 
 interface PhotoCaptureProps {
   frameType: FrameType;
-  topperData: TopperData;
+  topperData: TopperData[];
   onPhotosCaptured: (photos: string[]) => void;
 }
 
@@ -41,20 +41,26 @@ export default function PhotoCapture({ frameType, topperData, onPhotosCaptured }
   }, [capturedPhotos, requiredPhotos, onPhotosCaptured]);
 
   // Store loaded images for better performance
-  const [uploadedImageCache, setUploadedImageCache] = useState<HTMLImageElement | null>(null);
+  const [uploadedImageCaches, setUploadedImageCaches] = useState<Map<string, HTMLImageElement>>(new Map());
 
-  // Cache uploaded image when topper data changes
+  // Cache uploaded images when topper data changes
   useEffect(() => {
-    if (topperData.type === 'upload') {
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      img.onload = () => {
-        setUploadedImageCache(img);
-      };
-      img.src = topperData.data;
-    } else {
-      setUploadedImageCache(null);
-    }
+    const newCaches = new Map<string, HTMLImageElement>();
+    
+    topperData.forEach(topper => {
+      if (topper.type === 'upload') {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+          setUploadedImageCaches(prev => {
+            const updated = new Map(prev);
+            updated.set(topper.id, img);
+            return updated;
+          });
+        };
+        img.src = topper.data;
+      }
+    });
   }, [topperData]);
 
   // Real-time AR overlay rendering
@@ -73,44 +79,57 @@ export default function PhotoCapture({ frameType, topperData, onPhotosCaptured }
     // Clear canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Draw AR topper with improved face tracking
-    if (landmarks && landmarks.landmarks.length > 0) {
+    // Draw multiple AR toppers with improved face tracking
+    if (landmarks && landmarks.landmarks.length > 0 && topperData.length > 0) {
       const faceBox = landmarks.boundingBox;
       const faceWidth = faceBox.width * canvas.width;
       const faceHeight = faceBox.height * canvas.height;
       
-      // Position topper at the top center of the face, slightly above
-      const topperX = (faceBox.xMin + faceBox.width / 2) * canvas.width;
-      const topperY = faceBox.yMin * canvas.height - faceHeight * 0.15;
+      // Base position at the top center of the face
+      const baseCenterX = (faceBox.xMin + faceBox.width / 2) * canvas.width;
+      const baseCenterY = faceBox.yMin * canvas.height - faceHeight * 0.15;
       
       // Calculate topper size based on face width
-      const topperSize = Math.max(faceWidth * 0.5, 40);
+      const topperSize = Math.max(faceWidth * 0.4, 30);
       
-      // Clamp position to stay within canvas bounds
-      const safeX = Math.max(topperSize / 2, Math.min(topperX, canvas.width - topperSize / 2));
-      const safeY = Math.max(topperSize / 2, Math.min(topperY, canvas.height - topperSize / 2));
+      // Arrange multiple toppers in a semi-circle above the head
+      topperData.forEach((topper, index) => {
+        const totalToppers = topperData.length;
+        const angle = totalToppers > 1 ? (index - (totalToppers - 1) / 2) * 0.5 : 0;
+        const radius = totalToppers > 1 ? topperSize * 0.8 : 0;
+        
+        const topperX = baseCenterX + Math.sin(angle) * radius;
+        const topperY = baseCenterY - Math.cos(angle) * radius * 0.3;
+        
+        // Clamp position to stay within canvas bounds
+        const safeX = Math.max(topperSize / 2, Math.min(topperX, canvas.width - topperSize / 2));
+        const safeY = Math.max(topperSize / 2, Math.min(topperY, canvas.height - topperSize / 2));
 
-      ctx.save();
-      ctx.translate(safeX, safeY);
+        ctx.save();
+        ctx.translate(safeX, safeY);
 
-      if (topperData.type === 'emoji') {
-        ctx.font = `${topperSize}px Arial`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(topperData.data, 0, 0);
-      } else if (topperData.type === 'upload' && uploadedImageCache) {
-        ctx.drawImage(
-          uploadedImageCache,
-          -topperSize / 2,
-          -topperSize / 2,
-          topperSize,
-          topperSize
-        );
-      }
+        if (topper.type === 'emoji') {
+          ctx.font = `${topperSize}px Arial`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(topper.data, 0, 0);
+        } else if (topper.type === 'upload') {
+          const cachedImg = uploadedImageCaches.get(topper.id);
+          if (cachedImg) {
+            ctx.drawImage(
+              cachedImg,
+              -topperSize / 2,
+              -topperSize / 2,
+              topperSize,
+              topperSize
+            );
+          }
+        }
 
-      ctx.restore();
+        ctx.restore();
+      });
     }
-  }, [landmarks, topperData, showTopper, uploadedImageCache]);
+  }, [landmarks, topperData, showTopper, uploadedImageCaches]);
 
   // Start AR overlay animation loop
   useEffect(() => {
