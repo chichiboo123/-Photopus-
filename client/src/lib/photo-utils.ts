@@ -248,7 +248,7 @@ export async function generateFinalImage(
 
   // Draw text overlay if provided
   if (text.trim()) {
-    drawTextOverlay(ctx, text, textStyle, canvas.width, canvas.height);
+    drawTextOverlay(ctx, text, textStyle, canvas.width, canvas.height, frameType);
   }
 
   return canvas.toDataURL('image/png');
@@ -304,7 +304,7 @@ function getCanvasSize(frameType: FrameType, aspectRatio: number = 4/3): { width
       }
       return {
         width: photoWidth + 40,
-        height: photoHeight + 40 // Minimal space below photo
+        height: photoHeight + 80 // Space for text below photo
       };
     }
     default:
@@ -342,9 +342,9 @@ function drawPhotosInGrid(
       case '1cut':
         cols = 1;
         rows = 1;
-        // For 1-cut photos, use full canvas area minus margins (no text area reservation)
+        // For 1-cut photos, reserve space for text below
         photoWidth = canvasWidth - 40;
-        photoHeight = canvasHeight - 40;
+        photoHeight = canvasHeight - 80; // Reserve 40px margin + 40px for text
         break;
       default:
         resolve();
@@ -388,9 +388,10 @@ function drawPhotosInGrid(
 function drawTextOverlay(
   ctx: CanvasRenderingContext2D,
   text: string,
-  textStyle: TextStyle,
   canvasWidth: number,
-  canvasHeight: number
+  canvasHeight: number,
+  textStyle: TextStyle,
+  frameType: FrameType
 ): void {
   ctx.save();
 
@@ -412,8 +413,15 @@ function drawTextOverlay(
   ctx.shadowOffsetY = 1;
 
   // Draw text in the dedicated frame area below photos
-  const photoArea = canvasHeight - 80;
-  const textY = photoArea + 40; // Center text in the 80px text area
+  let textY;
+  if (frameType === '1cut') {
+    // For 1-cut photos, place text in the reserved space below the photo
+    textY = canvasHeight - 30; // 30px from bottom
+  } else {
+    // For multi-cut photos, use the dedicated text area
+    const photoArea = canvasHeight - 80;
+    textY = photoArea + 40; // Center text in the 80px text area
+  }
   ctx.fillText(text, canvasWidth / 2, textY);
 
   ctx.restore();

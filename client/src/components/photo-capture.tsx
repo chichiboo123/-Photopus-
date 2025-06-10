@@ -202,17 +202,7 @@ export default function PhotoCapture({ frameType, topperData, onPhotosCaptured, 
     const canvasX = (x - rect.left) * scaleX;
     const canvasY = (y - rect.top) * scaleY;
     
-    // Create expanded topper list to check hit detection (filter out 0 count)
-    const expandedToppers: { topper: TopperData; instanceIndex: number; id: string }[] = [];
-    topperData.forEach((topper) => {
-      const count = topperCounts[topper.id] || 1;
-      if (count > 0) {
-        for (let i = 0; i < count; i++) {
-          const instanceId = `${topper.id}_${i}`;
-          expandedToppers.push({ topper, instanceIndex: i, id: instanceId });
-        }
-      }
-    });
+    // Use memoized expanded toppers for hit detection
     
     const faceBox = landmarks.boundingBox;
     const faceWidth = faceBox.width * canvas.width;
