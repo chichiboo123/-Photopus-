@@ -79,9 +79,9 @@ function drawARTopper(
   const x = foreheadLandmark.x * canvasWidth;
   const y = foreheadLandmark.y * canvasHeight;
 
-  // Calculate topper size based on face bounding box
+  // Calculate topper size based on face bounding box - smaller size
   const faceWidth = landmarks.boundingBox.width * canvasWidth;
-  const topperSize = Math.max(faceWidth * 0.8, 60); // Minimum size of 60px
+  const topperSize = Math.max(faceWidth * 0.4, 30); // Reduced size, minimum 30px
 
   ctx.save();
   ctx.translate(x, y - topperSize / 2); // Position above forehead
