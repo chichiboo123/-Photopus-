@@ -274,7 +274,7 @@ function drawPhotosInGrid(
         cols = 1;
         rows = 1;
         photoWidth = canvasWidth - 40; // More margin for single photo
-        photoHeight = canvasWidth - 40; // Square aspect ratio
+        photoHeight = photoArea - 40; // Use available photo area height
         break;
       default:
         resolve();

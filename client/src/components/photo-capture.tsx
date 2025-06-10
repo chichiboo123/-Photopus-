@@ -126,9 +126,9 @@ export default function PhotoCapture({ frameType, topperData, onPhotosCaptured, 
         const rotateOffset = isAnimating ? Math.cos(time * 0.7 + index * 0.3) * 5 : 0;
         
         if (customPos) {
-          // Apply full floating animation to custom dragged positions
-          topperX = customPos.x + (isAnimating ? rotateOffset : 0);
-          topperY = customPos.y + (isAnimating ? floatOffset : 0);
+          // Convert normalized coordinates back to canvas coordinates
+          topperX = customPos.x * canvas.width + (isAnimating ? rotateOffset : 0);
+          topperY = customPos.y * canvas.height + (isAnimating ? floatOffset : 0);
         } else {
           // Calculate default floating position
           if (totalToppers === 1) {
@@ -290,11 +290,12 @@ export default function PhotoCapture({ frameType, topperData, onPhotosCaptured, 
       const clampedX = Math.max(adjustedTopperSize / 2, Math.min(canvasX - dragOffset.x, canvas.width - adjustedTopperSize / 2));
       const clampedY = Math.max(adjustedTopperSize / 2, Math.min(canvasY - dragOffset.y, canvas.height - adjustedTopperSize / 2));
       
+      // Store normalized coordinates (0-1 range) for proper cross-canvas consistency
       setTopperPositions(prev => ({
         ...prev,
         [draggedTopper]: {
-          x: clampedX,
-          y: clampedY
+          x: clampedX / canvas.width,
+          y: clampedY / canvas.height
         }
       }));
     }
@@ -340,11 +341,12 @@ export default function PhotoCapture({ frameType, topperData, onPhotosCaptured, 
       const clampedX = Math.max(adjustedTopperSize / 2, Math.min(canvasX - dragOffset.x, canvas.width - adjustedTopperSize / 2));
       const clampedY = Math.max(adjustedTopperSize / 2, Math.min(canvasY - dragOffset.y, canvas.height - adjustedTopperSize / 2));
       
+      // Store normalized coordinates (0-1 range) for proper cross-canvas consistency
       setTopperPositions(prev => ({
         ...prev,
         [draggedTopper]: {
-          x: clampedX,
-          y: clampedY
+          x: clampedX / canvas.width,
+          y: clampedY / canvas.height
         }
       }));
     }
