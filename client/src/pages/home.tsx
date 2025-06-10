@@ -130,6 +130,7 @@ export default function Home() {
             frameType={selectedFrame}
             topperData={selectedToppers}
             onPhotosCaptured={handlePhotosCaptured}
+            onRemoveTopper={handleRemoveTopper}
           />
         )}
         

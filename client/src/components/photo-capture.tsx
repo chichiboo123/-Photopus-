@@ -101,29 +101,43 @@ export default function PhotoCapture({ frameType, topperData, onPhotosCaptured, 
       const adjustedTopperSize = baseTopperSize * topperSize;
       
       // Create expanded topper list based on individual counts
-      const expandedToppers: { topper: TopperData; instanceIndex: number }[] = [];
+      const expandedToppers: { topper: TopperData; instanceIndex: number; id: string }[] = [];
       topperData.forEach((topper) => {
         const count = topperCounts[topper.id] || 1;
         for (let i = 0; i < count; i++) {
-          expandedToppers.push({ topper, instanceIndex: i });
+          const instanceId = `${topper.id}_${i}`;
+          expandedToppers.push({ topper, instanceIndex: i, id: instanceId });
         }
       });
 
-      // Arrange multiple toppers with better spacing
-      expandedToppers.forEach(({ topper }, index) => {
+      // Arrange multiple toppers with floating animation and drag support
+      expandedToppers.forEach(({ topper, instanceIndex, id }, index) => {
         const totalToppers = expandedToppers.length;
         let topperX, topperY;
         
-        if (totalToppers === 1) {
-          topperX = baseCenterX;
-          topperY = baseCenterY;
+        // Check if topper has custom position from dragging
+        const customPos = topperPositions[id];
+        
+        if (customPos) {
+          topperX = customPos.x;
+          topperY = customPos.y;
         } else {
-          // Use wider angle spread for better separation
-          const angle = (index - (totalToppers - 1) / 2) * (Math.PI / (totalToppers + 1));
-          const radius = Math.max(adjustedTopperSize * 1.5, 80); // Increased radius for better spacing
+          // Calculate default floating position
+          const time = isAnimating ? Date.now() / 1000 : 0;
+          const floatOffset = isAnimating ? Math.sin(time + index * 0.5) * 15 : 0;
+          const rotateOffset = isAnimating ? Math.cos(time * 0.7 + index * 0.3) * 5 : 0;
           
-          topperX = baseCenterX + Math.sin(angle) * radius;
-          topperY = baseCenterY - Math.abs(Math.cos(angle)) * radius * 0.5;
+          if (totalToppers === 1) {
+            topperX = baseCenterX + rotateOffset;
+            topperY = baseCenterY + floatOffset;
+          } else {
+            // Use wider angle spread for better separation
+            const angle = (index - (totalToppers - 1) / 2) * (Math.PI / (totalToppers + 1));
+            const radius = Math.max(adjustedTopperSize * 1.5, 80);
+            
+            topperX = baseCenterX + Math.sin(angle) * radius + rotateOffset;
+            topperY = baseCenterY - Math.abs(Math.cos(angle)) * radius * 0.5 + floatOffset;
+          }
         }
         
         // Clamp position to stay within canvas bounds
@@ -132,6 +146,17 @@ export default function PhotoCapture({ frameType, topperData, onPhotosCaptured, 
 
         ctx.save();
         ctx.translate(safeX, safeY);
+
+        // Add subtle glow effect when animating
+        if (isAnimating && !customPos) {
+          ctx.shadowColor = 'rgba(255, 223, 128, 0.4)';
+          ctx.shadowBlur = 8;
+          
+          // Add gentle rotation when floating
+          const time = isAnimating ? Date.now() / 1000 : 0;
+          const rotationAngle = isAnimating ? Math.sin(time * 0.5 + index * 0.4) * 0.1 : 0;
+          ctx.rotate(rotationAngle);
+        }
 
         if (topper.type === 'emoji') {
           ctx.font = `${adjustedTopperSize}px Arial`;
@@ -154,7 +179,128 @@ export default function PhotoCapture({ frameType, topperData, onPhotosCaptured, 
         ctx.restore();
       });
     }
-  }, [landmarks, topperData, showTopper, uploadedImageCaches]);
+  }, [landmarks, topperData, showTopper, uploadedImageCaches, isAnimating, topperPositions, topperCounts, topperSize]);
+
+  // Drag event handlers
+  const getTopperAtPosition = (x: number, y: number) => {
+    if (!canvasRef.current || !landmarks) return null;
+    
+    const canvas = canvasRef.current;
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    
+    const canvasX = (x - rect.left) * scaleX;
+    const canvasY = (y - rect.top) * scaleY;
+    
+    // Create expanded topper list to check hit detection
+    const expandedToppers: { topper: TopperData; instanceIndex: number; id: string }[] = [];
+    topperData.forEach((topper) => {
+      const count = topperCounts[topper.id] || 1;
+      for (let i = 0; i < count; i++) {
+        const instanceId = `${topper.id}_${i}`;
+        expandedToppers.push({ topper, instanceIndex: i, id: instanceId });
+      }
+    });
+    
+    // Check each topper for hit detection (reverse order for top-most first)
+    for (let i = expandedToppers.length - 1; i >= 0; i--) {
+      const { id } = expandedToppers[i];
+      const customPos = topperPositions[id];
+      
+      if (customPos) {
+        const distance = Math.sqrt(
+          Math.pow(canvasX - customPos.x, 2) + Math.pow(canvasY - customPos.y, 2)
+        );
+        const faceBox = landmarks.boundingBox;
+        const faceWidth = faceBox.width * canvas.width;
+        const baseTopperSize = Math.max(faceWidth * 0.4, 30);
+        const adjustedTopperSize = baseTopperSize * topperSize;
+        
+        if (distance <= adjustedTopperSize / 2) {
+          return { id, x: canvasX, y: canvasY };
+        }
+      }
+    }
+    
+    return null;
+  };
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    const topper = getTopperAtPosition(e.clientX, e.clientY);
+    if (topper) {
+      setDraggedTopper(topper.id);
+      setDragOffset({
+        x: topper.x - (topperPositions[topper.id]?.x || 0),
+        y: topper.y - (topperPositions[topper.id]?.y || 0)
+      });
+    }
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (draggedTopper && canvasRef.current) {
+      const canvas = canvasRef.current;
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      
+      const canvasX = (e.clientX - rect.left) * scaleX;
+      const canvasY = (e.clientY - rect.top) * scaleY;
+      
+      setTopperPositions(prev => ({
+        ...prev,
+        [draggedTopper]: {
+          x: canvasX - dragOffset.x,
+          y: canvasY - dragOffset.y
+        }
+      }));
+    }
+  };
+
+  const handleMouseUp = () => {
+    setDraggedTopper(null);
+    setDragOffset({x: 0, y: 0});
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    e.preventDefault();
+    const touch = e.touches[0];
+    const topper = getTopperAtPosition(touch.clientX, touch.clientY);
+    if (topper) {
+      setDraggedTopper(topper.id);
+      setDragOffset({
+        x: topper.x - (topperPositions[topper.id]?.x || 0),
+        y: topper.y - (topperPositions[topper.id]?.y || 0)
+      });
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    e.preventDefault();
+    if (draggedTopper && canvasRef.current) {
+      const canvas = canvasRef.current;
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      
+      const touch = e.touches[0];
+      const canvasX = (touch.clientX - rect.left) * scaleX;
+      const canvasY = (touch.clientY - rect.top) * scaleY;
+      
+      setTopperPositions(prev => ({
+        ...prev,
+        [draggedTopper]: {
+          x: canvasX - dragOffset.x,
+          y: canvasY - dragOffset.y
+        }
+      }));
+    }
+  };
+
+  const handleTouchEnd = () => {
+    setDraggedTopper(null);
+    setDragOffset({x: 0, y: 0});
+  };
 
   // Start AR overlay animation loop
   useEffect(() => {
@@ -231,7 +377,7 @@ export default function PhotoCapture({ frameType, topperData, onPhotosCaptured, 
         <h2 className="font-playful text-3xl font-bold text-gray-800 mb-4">
           📷 사진을 촬영해요
         </h2>
-        <p className="text-gray-600 text-lg">카메라 앞에서 포즈를 취해보세요!</p>
+        <p className="text-gray-600 text-lg">떠다니는 토퍼와 함께 사진을 찰칵 찍어문어!</p>
         <p className="text-sm text-gray-500 mt-2">
           {capturedPhotos.length}/{requiredPhotos} 장 촬영 완료
         </p>
@@ -252,8 +398,14 @@ export default function PhotoCapture({ frameType, topperData, onPhotosCaptured, 
             {/* AR 오버레이 캔버스 */}
             <canvas
               ref={canvasRef}
-              className="absolute inset-0 pointer-events-none"
+              className="absolute inset-0 cursor-pointer"
               style={{ width: '100%', height: '100%' }}
+              onMouseDown={handleMouseDown}
+              onMouseMove={handleMouseMove}
+              onMouseUp={handleMouseUp}
+              onTouchStart={handleTouchStart}
+              onTouchMove={handleTouchMove}
+              onTouchEnd={handleTouchEnd}
             />
 
             {/* MediaPipe 상태 표시 */}
