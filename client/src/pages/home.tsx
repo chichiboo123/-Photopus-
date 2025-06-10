@@ -101,9 +101,9 @@ export default function Home() {
         <div className="absolute inset-0 bg-gradient-to-r from-primary/10 to-secondary/10 rounded-b-3xl"></div>
         <div className="relative">
           <h1 className="font-playful text-4xl md:text-6xl font-bold text-primary mb-2 animate-bounce-gentle">
-            🐙 포토퍼스
+            📸 포토퍼스
           </h1>
-          <p className="text-gray-600 text-lg font-medium">떠다니는 토퍼와 함께 사진을 찰칵 찍어문어!</p>
+          <p className="text-gray-600 text-lg font-medium">떠다니는 토퍼와 함께 사진을 찰칵 찍어보세요!</p>
         </div>
       </header>
 
