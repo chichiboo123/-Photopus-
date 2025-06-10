@@ -291,11 +291,20 @@ function getCanvasSize(frameType: FrameType, aspectRatio: number = 4/3): { width
       };
     }
     case '1cut': {
-      const photoWidth = basePhotoSize * (isVertical ? aspectRatio : 1);
-      const photoHeight = basePhotoSize * (isVertical ? 1 : 1/aspectRatio);
+      // Maintain proper aspect ratio for 1-cut photos
+      let photoWidth, photoHeight;
+      if (isVertical) {
+        // For vertical videos, maintain aspect ratio
+        photoHeight = basePhotoSize;
+        photoWidth = photoHeight * aspectRatio;
+      } else {
+        // For horizontal videos, maintain aspect ratio
+        photoWidth = basePhotoSize;
+        photoHeight = photoWidth / aspectRatio;
+      }
       return {
         width: photoWidth + 40,
-        height: photoHeight + 80 // Reduced empty space below photo
+        height: photoHeight + 40 // Minimal space below photo
       };
     }
     default:
@@ -333,8 +342,9 @@ function drawPhotosInGrid(
       case '1cut':
         cols = 1;
         rows = 1;
+        // For 1-cut photos, use full canvas area minus margins (no text area reservation)
         photoWidth = canvasWidth - 40;
-        photoHeight = photoArea - 40;
+        photoHeight = canvasHeight - 40;
         break;
       default:
         resolve();
