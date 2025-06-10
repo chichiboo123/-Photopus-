@@ -95,9 +95,18 @@ export default function PhotoCapture({ frameType, topperData, onPhotosCaptured }
       const baseTopperSize = Math.max(faceWidth * 0.4, 30);
       const adjustedTopperSize = baseTopperSize * topperSize;
       
+      // Create expanded topper list based on individual counts
+      const expandedToppers: { topper: TopperData; instanceIndex: number }[] = [];
+      topperData.forEach((topper) => {
+        const count = topperCounts[topper.id] || 1;
+        for (let i = 0; i < count; i++) {
+          expandedToppers.push({ topper, instanceIndex: i });
+        }
+      });
+
       // Arrange multiple toppers with better spacing
-      topperData.forEach((topper, index) => {
-        const totalToppers = topperData.length;
+      expandedToppers.forEach(({ topper }, index) => {
+        const totalToppers = expandedToppers.length;
         let topperX, topperY;
         
         if (totalToppers === 1) {
