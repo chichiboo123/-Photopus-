@@ -11,11 +11,13 @@ export type FrameType = "1cut" | "2cut" | "4cut";
 export type TopperData = {
   type: "emoji" | "upload";
   data: string;
+  id: string;
+  count?: number; // For duplicating single toppers
 };
 
 export interface PhotoData {
   frameType: FrameType;
-  topperData: TopperData;
+  topperData: TopperData[];
   photos: string[];
   finalText?: string;
 }
@@ -23,7 +25,7 @@ export interface PhotoData {
 export default function Home() {
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedFrame, setSelectedFrame] = useState<FrameType | null>(null);
-  const [selectedTopper, setSelectedTopper] = useState<TopperData | null>(null);
+  const [selectedToppers, setSelectedToppers] = useState<TopperData[]>([]);
   const [capturedPhotos, setCapturedPhotos] = useState<string[]>([]);
   const [finalText, setFinalText] = useState("");
   const [stepCompleted, setStepCompleted] = useState([false, false, false, false]);
@@ -31,7 +33,7 @@ export default function Home() {
   const resetApp = () => {
     setCurrentStep(1);
     setSelectedFrame(null);
-    setSelectedTopper(null);
+    setSelectedToppers([]);
     setCapturedPhotos([]);
     setFinalText("");
     setStepCompleted([false, false, false, false]);
@@ -60,11 +62,15 @@ export default function Home() {
   };
 
   const handleTopperSelect = (topper: TopperData) => {
-    setSelectedTopper(topper);
+    setSelectedToppers(prev => [...prev, topper]);
+  };
+
+  const handleRemoveTopper = (topperId: string) => {
+    setSelectedToppers(prev => prev.filter(t => t.id !== topperId));
   };
 
   const handleNextToCamera = () => {
-    if (selectedTopper) {
+    if (selectedToppers.length > 0) {
       setStepCompleted(prev => {
         const newCompleted = [...prev];
         newCompleted[1] = true;
@@ -113,23 +119,24 @@ export default function Home() {
         {currentStep === 2 && selectedFrame && (
           <TopperDesign 
             onTopperSelect={handleTopperSelect}
-            selectedTopper={selectedTopper}
+            onRemoveTopper={handleRemoveTopper}
+            selectedToppers={selectedToppers}
             onNext={handleNextToCamera}
           />
         )}
         
-        {currentStep === 3 && selectedFrame && selectedTopper && (
+        {currentStep === 3 && selectedFrame && selectedToppers.length > 0 && (
           <PhotoCapture 
             frameType={selectedFrame}
-            topperData={selectedTopper}
+            topperData={selectedToppers}
             onPhotosCaptured={handlePhotosCaptured}
           />
         )}
         
-        {currentStep === 4 && selectedFrame && selectedTopper && capturedPhotos.length > 0 && (
+        {currentStep === 4 && selectedFrame && selectedToppers.length > 0 && capturedPhotos.length > 0 && (
           <TextDownload 
             frameType={selectedFrame}
-            topperData={selectedTopper}
+            topperData={selectedToppers}
             photos={capturedPhotos}
             finalText={finalText}
             onTextChange={handleTextChange}

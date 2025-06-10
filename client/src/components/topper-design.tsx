@@ -9,7 +9,8 @@ import { useToast } from "@/hooks/use-toast";
 
 interface TopperDesignProps {
   onTopperSelect: (topper: TopperData) => void;
-  selectedTopper: TopperData | null;
+  onRemoveTopper: (topperId: string) => void;
+  selectedToppers: TopperData[];
   onNext: () => void;
 }
 
@@ -22,7 +23,7 @@ const emojiOptions = [
   "🦋", "🐝", "🐞", "🐛", "🕸️", "🐙", "🐠", "🐡"
 ];
 
-export default function TopperDesign({ onTopperSelect, selectedTopper, onNext }: TopperDesignProps) {
+export default function TopperDesign({ onTopperSelect, onRemoveTopper, selectedToppers, onNext }: TopperDesignProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadedImage, setUploadedImage] = useState<string | null>(null);
   const { toast } = useToast();
