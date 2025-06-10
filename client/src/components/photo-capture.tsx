@@ -40,6 +40,23 @@ export default function PhotoCapture({ frameType, topperData, onPhotosCaptured }
     }
   }, [capturedPhotos, requiredPhotos, onPhotosCaptured]);
 
+  // Store loaded images for better performance
+  const [uploadedImageCache, setUploadedImageCache] = useState<HTMLImageElement | null>(null);
+
+  // Cache uploaded image when topper data changes
+  useEffect(() => {
+    if (topperData.type === 'upload') {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        setUploadedImageCache(img);
+      };
+      img.src = topperData.data;
+    } else {
+      setUploadedImageCache(null);
+    }
+  }, [topperData]);
+
   // Real-time AR overlay rendering
   const renderAROverlay = useCallback(() => {
     if (!videoRef.current || !canvasRef.current || !showTopper || !landmarks) return;
@@ -74,23 +91,19 @@ export default function PhotoCapture({ frameType, topperData, onPhotosCaptured }
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(topperData.data, 0, 0);
-      } else if (topperData.type === 'upload') {
-        const img = new Image();
-        img.onload = () => {
-          ctx.drawImage(
-            img,
-            -topperSize / 2,
-            -topperSize / 2,
-            topperSize,
-            topperSize
-          );
-        };
-        img.src = topperData.data;
+      } else if (topperData.type === 'upload' && uploadedImageCache) {
+        ctx.drawImage(
+          uploadedImageCache,
+          -topperSize / 2,
+          -topperSize / 2,
+          topperSize,
+          topperSize
+        );
       }
 
       ctx.restore();
     }
-  }, [landmarks, topperData, showTopper]);
+  }, [landmarks, topperData, showTopper, uploadedImageCache]);
 
   // Start AR overlay animation loop
   useEffect(() => {

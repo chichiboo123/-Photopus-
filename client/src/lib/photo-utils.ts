@@ -33,9 +33,11 @@ export function capturePhotoWithAR(
   const ctx = canvas.getContext('2d');
   if (!ctx) return null;
 
-  // Set canvas size to match video
-  canvas.width = video.videoWidth;
-  canvas.height = video.videoHeight;
+  // Set canvas size to match video's actual resolution
+  const videoWidth = video.videoWidth || video.clientWidth;
+  const videoHeight = video.videoHeight || video.clientHeight;
+  canvas.width = videoWidth;
+  canvas.height = videoHeight;
 
   // Save context state
   ctx.save();
@@ -51,7 +53,7 @@ export function capturePhotoWithAR(
   }
 
   // Draw video frame
-  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+  ctx.drawImage(video, 0, 0, videoWidth, videoHeight);
 
   // Draw AR topper if enabled and landmarks detected
   if (showTopper && landmarks && landmarks.landmarks.length > 0) {

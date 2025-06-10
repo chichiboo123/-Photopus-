@@ -9,14 +9,14 @@ interface FrameSelectionProps {
 
 const frameOptions = [
   {
-    type: "4cut" as FrameType,
-    title: "네컷 사진",
-    description: "4장의 사진으로 추억을 남겨요",
-    icon: Grid2X2,
-    gradient: "from-primary to-pink-300",
-    gridCols: "grid-cols-2",
+    type: "1cut" as FrameType,
+    title: "한컷 사진",
+    description: "완벽한 한 장을 남겨요",
+    icon: Square,
+    gradient: "from-accent to-yellow-300",
+    gridCols: "grid-cols-1",
     aspectRatio: "aspect-square",
-    photoCount: 4,
+    photoCount: 1,
   },
   {
     type: "2cut" as FrameType,
@@ -29,14 +29,14 @@ const frameOptions = [
     photoCount: 2,
   },
   {
-    type: "1cut" as FrameType,
-    title: "한컷 사진",
-    description: "완벽한 한 장을 남겨요",
-    icon: Square,
-    gradient: "from-accent to-yellow-300",
-    gridCols: "grid-cols-1",
+    type: "4cut" as FrameType,
+    title: "네컷 사진",
+    description: "4장의 사진으로 추억을 남겨요",
+    icon: Grid2X2,
+    gradient: "from-primary to-pink-300",
+    gridCols: "grid-cols-2",
     aspectRatio: "aspect-square",
-    photoCount: 1,
+    photoCount: 4,
   },
 ];
 
