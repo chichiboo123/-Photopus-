@@ -66,7 +66,7 @@ export default function Home() {
         <div className="absolute inset-0 bg-gradient-to-r from-primary/10 to-secondary/10 rounded-b-3xl"></div>
         <div className="relative">
           <h1 className="font-playful text-4xl md:text-6xl font-bold text-primary mb-2 animate-bounce-gentle">
-            <img src="/client/src/assets/octopus-logo.png" alt="포토퍼스 로고" className="inline-block mr-3 w-12 h-12 md:w-16 md:h-16" />
+            <img src="/octopus-logo.png" alt="포토퍼스 로고" className="inline-block mr-3 w-12 h-12 md:w-16 md:h-16" />
             포토퍼스
           </h1>
           <p className="text-gray-600 text-lg font-medium">재미있는 AR 토퍼와 함께 사진을 찍어보세요!</p>
@@ -111,7 +111,7 @@ export default function Home() {
       </div>
 
       {/* Bottom Navigation */}
-      <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50">
+      <div className="fixed bottom-20 left-1/2 transform -translate-x-1/2 z-50">
         <Button 
           onClick={resetApp}
           className="bg-white shadow-xl text-gray-700 hover:bg-gray-50 font-bold px-6 py-3 rounded-full"

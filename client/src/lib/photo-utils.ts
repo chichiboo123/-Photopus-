@@ -109,13 +109,13 @@ function drawARTopper(
   ctx.restore();
 }
 
-export function generateFinalImage(
+export async function generateFinalImage(
   canvas: HTMLCanvasElement,
   frameType: FrameType,
   photos: string[],
   text: string,
-  textStyle: TextStyle
-): string | null {
+  textStyle: TextStyle & { fontFamily?: string }
+): Promise<string | null> {
   const ctx = canvas.getContext('2d');
   if (!ctx) return null;
 
@@ -128,8 +128,8 @@ export function generateFinalImage(
   ctx.fillStyle = '#FFFFFF';
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  // Draw photos in grid layout
-  drawPhotosInGrid(ctx, photos, frameType, canvas.width, canvas.height);
+  // Draw photos in grid layout and wait for completion
+  await drawPhotosInGrid(ctx, photos, frameType, canvas.width, canvas.height);
 
   // Draw text overlay if provided
   if (text.trim()) {
@@ -158,47 +158,66 @@ function drawPhotosInGrid(
   frameType: FrameType,
   canvasWidth: number,
   canvasHeight: number
-): void {
-  const photoArea = canvasHeight - 100; // Leave 100px for text
-  let photoWidth: number, photoHeight: number, cols: number, rows: number;
+): Promise<void> {
+  return new Promise((resolve) => {
+    const photoArea = canvasHeight - 100; // Leave 100px for text
+    let photoWidth: number, photoHeight: number, cols: number, rows: number;
 
-  switch (frameType) {
-    case '4cut':
-      cols = 2;
-      rows = 2;
-      photoWidth = (canvasWidth - 30) / 2; // 10px margin + 10px gap
-      photoHeight = (photoArea - 30) / 2;
-      break;
-    case '2cut':
-      cols = 1;
-      rows = 2;
-      photoWidth = canvasWidth - 20; // 10px margin on each side
-      photoHeight = (photoArea - 30) / 2;
-      break;
-    case '1cut':
-      cols = 1;
-      rows = 1;
-      photoWidth = canvasWidth - 20;
-      photoHeight = photoArea - 20;
-      break;
-    default:
+    switch (frameType) {
+      case '4cut':
+        cols = 2;
+        rows = 2;
+        photoWidth = (canvasWidth - 30) / 2; // 10px margin + 10px gap
+        photoHeight = (photoArea - 30) / 2;
+        break;
+      case '2cut':
+        cols = 1;
+        rows = 2;
+        photoWidth = canvasWidth - 20; // 10px margin on each side
+        photoHeight = (photoArea - 30) / 2;
+        break;
+      case '1cut':
+        cols = 1;
+        rows = 1;
+        photoWidth = canvasWidth - 20;
+        photoHeight = photoArea - 20;
+        break;
+      default:
+        resolve();
+        return;
+    }
+
+    let loadedCount = 0;
+    const totalPhotos = Math.min(photos.length, cols * rows);
+
+    if (totalPhotos === 0) {
+      resolve();
       return;
-  }
+    }
 
-  photos.forEach((photoData, index) => {
-    if (index >= cols * rows) return;
+    photos.slice(0, totalPhotos).forEach((photoData, index) => {
+      const col = index % cols;
+      const row = Math.floor(index / cols);
+      
+      const x = 10 + col * (photoWidth + 10);
+      const y = 10 + row * (photoHeight + 10);
 
-    const col = index % cols;
-    const row = Math.floor(index / cols);
-    
-    const x = 10 + col * (photoWidth + 10);
-    const y = 10 + row * (photoHeight + 10);
-
-    const img = new Image();
-    img.onload = () => {
-      ctx.drawImage(img, x, y, photoWidth, photoHeight);
-    };
-    img.src = photoData;
+      const img = new Image();
+      img.onload = () => {
+        ctx.drawImage(img, x, y, photoWidth, photoHeight);
+        loadedCount++;
+        if (loadedCount === totalPhotos) {
+          resolve();
+        }
+      };
+      img.onerror = () => {
+        loadedCount++;
+        if (loadedCount === totalPhotos) {
+          resolve();
+        }
+      };
+      img.src = photoData;
+    });
   });
 }
 

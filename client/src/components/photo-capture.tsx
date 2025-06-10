@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from "react";
+import React, { useRef, useEffect, useState, useCallback } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Camera, RotateCcw, RotateCw, Eye, EyeOff } from "lucide-react";
@@ -39,6 +39,78 @@ export default function PhotoCapture({ frameType, topperData, onPhotosCaptured }
       onPhotosCaptured(capturedPhotos);
     }
   }, [capturedPhotos, requiredPhotos, onPhotosCaptured]);
+
+  // Real-time AR overlay rendering
+  const renderAROverlay = useCallback(() => {
+    if (!videoRef.current || !canvasRef.current || !showTopper || !landmarks) return;
+    
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    // Set canvas size to match video
+    canvas.width = video.videoWidth || video.clientWidth;
+    canvas.height = video.videoHeight || video.clientHeight;
+
+    // Clear canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Draw AR topper
+    if (landmarks && landmarks.landmarks.length > 0) {
+      const foreheadLandmark = landmarks.landmarks[0];
+      const x = foreheadLandmark.x * canvas.width;
+      const y = foreheadLandmark.y * canvas.height;
+
+      // Calculate topper size based on face bounding box - make it smaller
+      const faceWidth = landmarks.boundingBox.width * canvas.width;
+      const topperSize = Math.max(faceWidth * 0.4, 40); // Reduced from 0.8 to 0.4
+
+      ctx.save();
+      ctx.translate(x, y - topperSize / 2);
+
+      if (topperData.type === 'emoji') {
+        ctx.font = `${topperSize}px Arial`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(topperData.data, 0, 0);
+      } else if (topperData.type === 'upload') {
+        const img = new Image();
+        img.onload = () => {
+          ctx.drawImage(
+            img,
+            -topperSize / 2,
+            -topperSize / 2,
+            topperSize,
+            topperSize
+          );
+        };
+        img.src = topperData.data;
+      }
+
+      ctx.restore();
+    }
+  }, [landmarks, topperData, showTopper]);
+
+  // Start AR overlay animation loop
+  useEffect(() => {
+    let animationFrame: number;
+    
+    const animate = () => {
+      renderAROverlay();
+      animationFrame = requestAnimationFrame(animate);
+    };
+
+    if (stream && mediaPipeReady) {
+      animate();
+    }
+
+    return () => {
+      if (animationFrame) {
+        cancelAnimationFrame(animationFrame);
+      }
+    };
+  }, [stream, mediaPipeReady, renderAROverlay]);
 
   const startCountdown = () => {
     setIsCountingDown(true);

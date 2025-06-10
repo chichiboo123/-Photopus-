@@ -15,7 +15,11 @@ interface TopperDesignProps {
 
 const emojiOptions = [
   "👑", "🎩", "🎀", "🌟", "🦄", "🐻", "🐰", "🌈",
-  "🎪", "🎭", "🎨", "🎯", "🎲", "🎸", "🎤", "🎺"
+  "🎪", "🎭", "🎨", "🎯", "🎲", "🎸", "🎤", "🎺",
+  "🎂", "🍰", "🧁", "🍭", "🍬", "🍎", "🍊", "🍌",
+  "🌸", "🌺", "🌻", "🌷", "🌹", "💐", "🌼", "🌙",
+  "⭐", "☀️", "🌤️", "⛅", "🌦️", "🌧️", "⚡", "❄️",
+  "🦋", "🐝", "🐞", "🐛", "🕸️", "🐙", "🐠", "🐡"
 ];
 
 export default function TopperDesign({ onTopperSelect, selectedTopper, onNext }: TopperDesignProps) {
@@ -139,11 +143,11 @@ export default function TopperDesign({ onTopperSelect, selectedTopper, onNext }:
             {/* 이모지 선택 */}
             <div className="text-center">
               <h3 className="font-playful text-2xl font-bold text-gray-800 mb-4">이모지 선택</h3>
-              <div className="grid grid-cols-4 gap-3 mb-4">
+              <div className="grid grid-cols-6 gap-2 mb-4 max-h-48 overflow-y-auto">
                 {emojiOptions.map((emoji) => (
                   <div 
                     key={emoji}
-                    className={`aspect-square rounded-2xl flex items-center justify-center text-4xl cursor-pointer transition-all duration-300 transform hover:scale-110 ${
+                    className={`aspect-square rounded-xl flex items-center justify-center text-2xl cursor-pointer transition-all duration-300 transform hover:scale-110 ${
                       isEmojiSelected(emoji) 
                         ? 'bg-primary text-white' 
                         : 'bg-gray-100 hover:bg-primary hover:text-white'
