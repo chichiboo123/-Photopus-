@@ -47,7 +47,7 @@ export default function FrameSelection({ onFrameSelect }: FrameSelectionProps) {
         <h2 className="font-playful text-3xl font-bold text-gray-800 mb-4">
           📸 사진 프레임을 선택해주세요
         </h2>
-        <p className="text-gray-600 text-lg">원하는 사진 형태를 골라보세요!</p>
+
       </div>
       
       <div className="grid md:grid-cols-3 gap-6 mb-8">

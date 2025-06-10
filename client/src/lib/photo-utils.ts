@@ -80,35 +80,56 @@ function drawMultipleARToppers(
   topperPositions?: {[key: string]: {x: number, y: number}},
   topperSizeMultiplier: number = 1.0
 ): void {
+  // Create expanded toppers array based on counts and user positions
+  const expandedToppers: { topper: TopperData; instanceIndex: number; id: string }[] = [];
+  
+  topperData.forEach((topper) => {
+    const count = topperCounts?.[topper.id] ?? 1;
+    for (let i = 0; i < count; i++) {
+      expandedToppers.push({
+        topper,
+        instanceIndex: i,
+        id: `${topper.id}_${i}`
+      });
+    }
+  });
+
   const faceBox = landmarks.boundingBox;
   const faceWidth = faceBox.width * canvasWidth;
-  const faceHeight = faceBox.height * canvasHeight;
   
-  // Base position at the top center of the face
-  const baseCenterX = (faceBox.xMin + faceBox.width / 2) * canvasWidth;
-  const baseCenterY = faceBox.yMin * canvasHeight - faceHeight * 0.15;
+  // Calculate topper size using user-set multiplier
+  const baseTopperSize = Math.max(faceWidth * 0.4, 30);
+  const finalTopperSize = baseTopperSize * (topperSizeMultiplier || 1.0);
   
-  // Calculate topper size based on face width
-  const topperSize = Math.max(faceWidth * 0.5, 40);
-  
-  // Arrange multiple toppers in a semi-circle above the head
-  topperData.forEach((topper, index) => {
-    const totalToppers = topperData.length;
-    const angle = totalToppers > 1 ? (index - (totalToppers - 1) / 2) * 0.5 : 0;
-    const radius = totalToppers > 1 ? topperSize * 0.8 : 0;
+  expandedToppers.forEach(({ topper, instanceIndex, id }) => {
+    // Use exact user-set position if available
+    let topperX, topperY;
     
-    const topperX = baseCenterX + Math.sin(angle) * radius;
-    const topperY = baseCenterY - Math.cos(angle) * radius * 0.3;
+    if (topperPositions?.[id]) {
+      // Convert preview coordinates to capture canvas coordinates
+      const userPos = topperPositions[id];
+      topperX = userPos.x * canvasWidth;
+      topperY = userPos.y * canvasHeight;
+    } else {
+      // Default positioning as fallback
+      const baseCenterX = (faceBox.xMin + faceBox.width / 2) * canvasWidth;
+      const baseCenterY = faceBox.yMin * canvasHeight - faceWidth * 0.15;
+      
+      const angle = instanceIndex * 0.3;
+      const radius = finalTopperSize * 0.8;
+      topperX = baseCenterX + Math.sin(angle) * radius;
+      topperY = baseCenterY - Math.cos(angle) * radius * 0.3;
+    }
     
-    // Clamp position to stay within canvas bounds
-    const safeX = Math.max(topperSize / 2, Math.min(topperX, canvasWidth - topperSize / 2));
-    const safeY = Math.max(topperSize / 2, Math.min(topperY, canvasHeight - topperSize / 2));
+    // Ensure toppers stay within canvas bounds
+    const safeX = Math.max(finalTopperSize / 2, Math.min(topperX, canvasWidth - finalTopperSize / 2));
+    const safeY = Math.max(finalTopperSize / 2, Math.min(topperY, canvasHeight - finalTopperSize / 2));
 
     ctx.save();
     ctx.translate(safeX, safeY);
 
     if (topper.type === 'emoji') {
-      ctx.font = `${topperSize}px Arial`;
+      ctx.font = `${finalTopperSize}px Arial`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(topper.data, 0, 0);
@@ -118,10 +139,10 @@ function drawMultipleARToppers(
       img.onload = () => {
         ctx.drawImage(
           img,
-          -topperSize / 2,
-          -topperSize / 2,
-          topperSize,
-          topperSize
+          -finalTopperSize / 2,
+          -finalTopperSize / 2,
+          finalTopperSize,
+          finalTopperSize
         );
       };
       img.src = topper.data;

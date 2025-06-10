@@ -512,15 +512,7 @@ export default function PhotoCapture({ frameType, topperData, onPhotosCaptured, 
               사진 촬영
             </Button>
             
-            <Button
-              variant="outline"
-              size="lg"
-              onClick={() => setIsAnimating(!isAnimating)}
-              className={`p-4 rounded-2xl ${isAnimating ? 'bg-green-500 text-white' : 'bg-gray-400 text-white'}`}
-              title={isAnimating ? "토퍼 애니메이션 일시정지" : "토퍼 애니메이션 재생"}
-            >
-              {isAnimating ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6" />}
-            </Button>
+
           </div>
 
           {/* 토퍼 컨트롤 */}
