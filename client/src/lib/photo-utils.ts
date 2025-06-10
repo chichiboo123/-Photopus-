@@ -122,7 +122,8 @@ export async function generateFinalImage(
   frameType: FrameType,
   photos: string[],
   text: string,
-  textStyle: TextStyle & { fontFamily?: string }
+  textStyle: TextStyle & { fontFamily?: string },
+  frameColor: string = '#FFFFFF'
 ): Promise<string | null> {
   const ctx = canvas.getContext('2d');
   if (!ctx) return null;
@@ -132,8 +133,8 @@ export async function generateFinalImage(
   canvas.width = canvasSize.width;
   canvas.height = canvasSize.height;
 
-  // Clear canvas
-  ctx.fillStyle = '#FFFFFF';
+  // Clear canvas with selected frame color
+  ctx.fillStyle = frameColor;
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   // Draw photos in grid layout and wait for completion

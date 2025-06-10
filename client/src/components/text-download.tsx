@@ -52,12 +52,13 @@ export default function TextDownload({
         frameType,
         photos,
         finalText,
-        textStyle
+        textStyle,
+        frameColor
       ).then((imageData) => {
         setFinalImageData(imageData);
       });
     }
-  }, [frameType, photos, finalText, textStyle]);
+  }, [frameType, photos, finalText, textStyle, frameColor]);
 
   const handleDownload = async () => {
     if (finalImageData) {
@@ -165,6 +166,26 @@ export default function TextDownload({
             </div>
           </div>
 
+          {/* 프레임 색상 선택 */}
+          <div className="mb-8">
+            <h4 className="font-bold text-lg text-gray-800 mb-4 text-center">프레임 색상</h4>
+            <div className="grid grid-cols-5 gap-3 max-w-md mx-auto mb-6">
+              {pastelColors.map((color, index) => (
+                <button
+                  key={index}
+                  onClick={() => setFrameColor(color)}
+                  className={`w-12 h-12 rounded-xl transition-all duration-300 border-4 ${
+                    frameColor === color 
+                      ? 'border-gray-800 scale-110 shadow-lg' 
+                      : 'border-gray-300 hover:border-gray-500 hover:scale-105'
+                  }`}
+                  style={{ backgroundColor: color }}
+                  title={`색상 ${index + 1}`}
+                />
+              ))}
+            </div>
+          </div>
+
           {/* 텍스트 스타일 옵션 */}
           <div className="mb-8">
             <h4 className="font-bold text-lg text-gray-800 mb-4 text-center">텍스트 스타일</h4>
@@ -226,7 +247,7 @@ export default function TextDownload({
           </div>
 
           {/* 다운로드 버튼들 */}
-          <div className="flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-6">
+          <div className="flex flex-col sm:flex-row justify-center gap-4">
             <Button 
               onClick={handleDownload}
               className="button-primary text-white px-8 py-4 rounded-2xl font-bold text-lg flex items-center justify-center"
@@ -255,18 +276,6 @@ export default function TextDownload({
           )}
         </CardContent>
       </Card>
-
-      {/* 다시 시작하기 버튼 */}
-      <div className="text-center">
-        <Button 
-          onClick={onStartOver}
-          variant="outline"
-          className="px-8 py-3 rounded-2xl font-bold text-lg"
-        >
-          <RotateCcw className="mr-3 w-5 h-5" />
-          다시 시작하기
-        </Button>
-      </div>
     </div>
   );
 }
