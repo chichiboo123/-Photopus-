@@ -22,6 +22,8 @@ export default function PhotoCapture({ frameType, topperData, onPhotosCaptured }
   const [flipHorizontal, setFlipHorizontal] = useState(false);
   const [flipVertical, setFlipVertical] = useState(false);
   const [showTopper, setShowTopper] = useState(true);
+  const [topperCounts, setTopperCounts] = useState<{[key: string]: number}>({});
+  const [topperSize, setTopperSize] = useState(1.0);
 
   const { stream, error: cameraError } = useCamera();
   const { landmarks, isReady: mediaPipeReady } = useMediaPipe(videoRef.current);
@@ -89,27 +91,36 @@ export default function PhotoCapture({ frameType, topperData, onPhotosCaptured }
       const baseCenterX = (faceBox.xMin + faceBox.width / 2) * canvas.width;
       const baseCenterY = faceBox.yMin * canvas.height - faceHeight * 0.15;
       
-      // Calculate topper size based on face width
-      const topperSize = Math.max(faceWidth * 0.4, 30);
+      // Calculate topper size based on face width and size multiplier
+      const baseTopperSize = Math.max(faceWidth * 0.4, 30);
+      const adjustedTopperSize = baseTopperSize * topperSize;
       
-      // Arrange multiple toppers in a semi-circle above the head
+      // Arrange multiple toppers with better spacing
       topperData.forEach((topper, index) => {
         const totalToppers = topperData.length;
-        const angle = totalToppers > 1 ? (index - (totalToppers - 1) / 2) * 0.5 : 0;
-        const radius = totalToppers > 1 ? topperSize * 0.8 : 0;
+        let topperX, topperY;
         
-        const topperX = baseCenterX + Math.sin(angle) * radius;
-        const topperY = baseCenterY - Math.cos(angle) * radius * 0.3;
+        if (totalToppers === 1) {
+          topperX = baseCenterX;
+          topperY = baseCenterY;
+        } else {
+          // Use wider angle spread for better separation
+          const angle = (index - (totalToppers - 1) / 2) * (Math.PI / (totalToppers + 1));
+          const radius = Math.max(adjustedTopperSize * 1.5, 80); // Increased radius for better spacing
+          
+          topperX = baseCenterX + Math.sin(angle) * radius;
+          topperY = baseCenterY - Math.abs(Math.cos(angle)) * radius * 0.5;
+        }
         
         // Clamp position to stay within canvas bounds
-        const safeX = Math.max(topperSize / 2, Math.min(topperX, canvas.width - topperSize / 2));
-        const safeY = Math.max(topperSize / 2, Math.min(topperY, canvas.height - topperSize / 2));
+        const safeX = Math.max(adjustedTopperSize / 2, Math.min(topperX, canvas.width - adjustedTopperSize / 2));
+        const safeY = Math.max(adjustedTopperSize / 2, Math.min(topperY, canvas.height - adjustedTopperSize / 2));
 
         ctx.save();
         ctx.translate(safeX, safeY);
 
         if (topper.type === 'emoji') {
-          ctx.font = `${topperSize}px Arial`;
+          ctx.font = `${adjustedTopperSize}px Arial`;
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
           ctx.fillText(topper.data, 0, 0);
@@ -118,10 +129,10 @@ export default function PhotoCapture({ frameType, topperData, onPhotosCaptured }
           if (cachedImg) {
             ctx.drawImage(
               cachedImg,
-              -topperSize / 2,
-              -topperSize / 2,
-              topperSize,
-              topperSize
+              -adjustedTopperSize / 2,
+              -adjustedTopperSize / 2,
+              adjustedTopperSize,
+              adjustedTopperSize
             );
           }
         }
@@ -283,12 +294,83 @@ export default function PhotoCapture({ frameType, topperData, onPhotosCaptured }
               variant="outline"
               size="lg"
               onClick={() => setShowTopper(!showTopper)}
-              className="p-4 rounded-2xl"
-              title="토퍼 숨기기/보이기"
+              className={`p-4 rounded-2xl ${showTopper ? 'bg-primary text-white' : ''}`}
+              title={showTopper ? "토퍼 숨기기" : "토퍼 보이기"}
             >
-              {showTopper ? <Eye className="w-6 h-6" /> : <EyeOff className="w-6 h-6" />}
+              {showTopper ? <EyeOff className="w-6 h-6" /> : <Eye className="w-6 h-6" />}
             </Button>
           </div>
+
+          {/* 토퍼 컨트롤 */}
+          {topperData.length > 0 && (
+            <div className="bg-white rounded-2xl p-6 mb-6 shadow-lg">
+              <h3 className="font-playful text-xl font-bold text-gray-800 mb-4 text-center">토퍼 설정</h3>
+              
+              {/* 토퍼 크기 조절 */}
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  토퍼 크기: {Math.round(topperSize * 100)}%
+                </label>
+                <div className="flex items-center space-x-4">
+                  <span className="text-sm text-gray-500">작게</span>
+                  <input
+                    type="range"
+                    min="0.5"
+                    max="2.0"
+                    step="0.1"
+                    value={topperSize}
+                    onChange={(e) => setTopperSize(parseFloat(e.target.value))}
+                    className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                  />
+                  <span className="text-sm text-gray-500">크게</span>
+                </div>
+              </div>
+
+              {/* 개별 토퍼 개수 조절 */}
+              <div className="grid gap-4">
+                <h4 className="font-medium text-gray-700">토퍼별 개수 설정</h4>
+                {topperData.map((topper) => (
+                  <div key={topper.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-8 h-8 rounded bg-white flex items-center justify-center">
+                        {topper.type === 'emoji' ? (
+                          <span className="text-lg">{topper.data}</span>
+                        ) : (
+                          <img src={topper.data} alt="Topper" className="w-full h-full object-cover rounded" />
+                        )}
+                      </div>
+                      <span className="text-sm font-medium">
+                        {topper.type === 'emoji' ? topper.data : '업로드 이미지'}
+                      </span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <button
+                        onClick={() => setTopperCounts(prev => ({
+                          ...prev,
+                          [topper.id]: Math.max(1, (prev[topper.id] || 1) - 1)
+                        }))}
+                        className="w-8 h-8 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                      >
+                        -
+                      </button>
+                      <span className="w-8 text-center font-medium">
+                        {topperCounts[topper.id] || 1}
+                      </span>
+                      <button
+                        onClick={() => setTopperCounts(prev => ({
+                          ...prev,
+                          [topper.id]: Math.min(10, (prev[topper.id] || 1) + 1)
+                        }))}
+                        className="w-8 h-8 bg-green-500 text-white rounded-full hover:bg-green-600 transition-colors"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* 촬영된 사진 미리보기 */}
           {capturedPhotos.length > 0 && (
