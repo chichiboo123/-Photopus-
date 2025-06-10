@@ -74,29 +74,34 @@ function drawARTopper(
   canvasWidth: number,
   canvasHeight: number
 ): void {
-  // Get forehead position (first landmark in our mock data)
-  const foreheadLandmark = landmarks.landmarks[0];
-  if (!foreheadLandmark) return;
-
-  const x = foreheadLandmark.x * canvasWidth;
-  const y = foreheadLandmark.y * canvasHeight;
-
-  // Calculate topper size based on face bounding box - smaller size
-  const faceWidth = landmarks.boundingBox.width * canvasWidth;
-  const topperSize = Math.max(faceWidth * 0.4, 30); // Reduced size, minimum 30px
+  // Use face bounding box for better positioning
+  const faceBox = landmarks.boundingBox;
+  const faceWidth = faceBox.width * canvasWidth;
+  const faceHeight = faceBox.height * canvasHeight;
+  
+  // Position topper at the top center of the face, slightly above
+  const topperX = (faceBox.xMin + faceBox.width / 2) * canvasWidth;
+  const topperY = faceBox.yMin * canvasHeight - faceHeight * 0.15; // Position above forehead
+  
+  // Calculate topper size based on face width
+  const topperSize = Math.max(faceWidth * 0.5, 40);
+  
+  // Clamp position to stay within canvas bounds
+  const safeX = Math.max(topperSize / 2, Math.min(topperX, canvasWidth - topperSize / 2));
+  const safeY = Math.max(topperSize / 2, Math.min(topperY, canvasHeight - topperSize / 2));
 
   ctx.save();
-  ctx.translate(x, y - topperSize / 2); // Position above forehead
+  ctx.translate(safeX, safeY);
 
   if (topperData.type === 'emoji') {
-    // Draw emoji topper
     ctx.font = `${topperSize}px Arial`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(topperData.data, 0, 0);
   } else if (topperData.type === 'upload') {
-    // Draw uploaded image topper
+    // For photo capture, create image synchronously
     const img = new Image();
+    img.crossOrigin = 'anonymous';
     img.onload = () => {
       ctx.drawImage(
         img,
@@ -149,7 +154,7 @@ function getCanvasSize(frameType: FrameType): { width: number; height: number } 
     case '2cut':
       return { width: 400, height: 500 }; // 1x2 layout
     case '1cut':
-      return { width: 400, height: 450 }; // Single photo with text space
+      return { width: 400, height: 400 }; // Square aspect ratio for single photo
     default:
       return { width: 400, height: 600 };
   }
@@ -182,8 +187,8 @@ function drawPhotosInGrid(
       case '1cut':
         cols = 1;
         rows = 1;
-        photoWidth = canvasWidth - 20;
-        photoHeight = photoArea - 20;
+        photoWidth = canvasWidth - 40; // More margin for single photo
+        photoHeight = canvasWidth - 40; // Square aspect ratio
         break;
       default:
         resolve();
@@ -202,8 +207,8 @@ function drawPhotosInGrid(
       const col = index % cols;
       const row = Math.floor(index / cols);
       
-      const x = 10 + col * (photoWidth + 10);
-      const y = 10 + row * (photoHeight + 10);
+      const x = frameType === '1cut' ? 20 : 10 + col * (photoWidth + 10);
+      const y = frameType === '1cut' ? 20 : 10 + row * (photoHeight + 10);
 
       const img = new Image();
       img.onload = () => {

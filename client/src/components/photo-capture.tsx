@@ -73,18 +73,25 @@ export default function PhotoCapture({ frameType, topperData, onPhotosCaptured }
     // Clear canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Draw AR topper
+    // Draw AR topper with improved face tracking
     if (landmarks && landmarks.landmarks.length > 0) {
-      const foreheadLandmark = landmarks.landmarks[0];
-      const x = foreheadLandmark.x * canvas.width;
-      const y = foreheadLandmark.y * canvas.height;
-
-      // Calculate topper size based on face bounding box - make it smaller
-      const faceWidth = landmarks.boundingBox.width * canvas.width;
-      const topperSize = Math.max(faceWidth * 0.4, 40); // Reduced from 0.8 to 0.4
+      const faceBox = landmarks.boundingBox;
+      const faceWidth = faceBox.width * canvas.width;
+      const faceHeight = faceBox.height * canvas.height;
+      
+      // Position topper at the top center of the face, slightly above
+      const topperX = (faceBox.xMin + faceBox.width / 2) * canvas.width;
+      const topperY = faceBox.yMin * canvas.height - faceHeight * 0.15;
+      
+      // Calculate topper size based on face width
+      const topperSize = Math.max(faceWidth * 0.5, 40);
+      
+      // Clamp position to stay within canvas bounds
+      const safeX = Math.max(topperSize / 2, Math.min(topperX, canvas.width - topperSize / 2));
+      const safeY = Math.max(topperSize / 2, Math.min(topperY, canvas.height - topperSize / 2));
 
       ctx.save();
-      ctx.translate(x, y - topperSize / 2);
+      ctx.translate(safeX, safeY);
 
       if (topperData.type === 'emoji') {
         ctx.font = `${topperSize}px Arial`;

@@ -33,6 +33,15 @@ export default function TextDownload({
     color: '#FFFFFF',
     fontFamily: 'Noto Sans KR'
   });
+  const [frameColor, setFrameColor] = useState('#FFFFFF');
+
+  // 20 pastel colors for frame selection
+  const pastelColors = [
+    '#FFE4E1', '#FFF0F5', '#E6E6FA', '#F0F8FF', '#F0FFFF',
+    '#F5FFFA', '#F0FFF0', '#FFFACD', '#FFF8DC', '#FFEFD5',
+    '#FFE4E1', '#FFDAB9', '#EEE8AA', '#F0E68C', '#DDA0DD',
+    '#D8BFD8', '#FFB6C1', '#FFC0CB', '#FFCCCB', '#F5DEB3'
+  ];
   const [showSuccess, setShowSuccess] = useState(false);
   const { toast } = useToast();
 
