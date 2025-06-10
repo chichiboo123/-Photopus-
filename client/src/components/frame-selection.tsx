@@ -1,6 +1,6 @@
 import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Camera, Grid3X3, Grid2X2, Square } from "lucide-react";
+import { Camera, Grid3X3, Grid2X2, Square, RectangleVertical } from "lucide-react";
 import { FrameType } from "@/pages/home";
 
 interface FrameSelectionProps {
@@ -22,7 +22,7 @@ const frameOptions = [
     type: "2cut" as FrameType,
     title: "두컷 사진",
     description: "2장으로 간단하게 찍어요",
-    icon: Grid2X2,
+    icon: RectangleVertical,
     gradient: "from-secondary to-teal-300",
     gridCols: "grid-cols-1",
     aspectRatio: "aspect-video",
