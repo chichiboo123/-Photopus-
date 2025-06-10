@@ -1,0 +1,129 @@
+✅ 1. Floating 버튼 위치 수정
+문제: ‘처음으로’ 버튼이 화면을 따라다님 (Floating)
+
+요청: 페이지 하단에 고정된 위치로 설정
+
+기술 가이드:
+
+기존 CSS에 position: fixed; bottom: ...; 방식이 적용된 것으로 보임
+
+position: static 또는 position: absolute로 변경하고, 하단 레이아웃 안에 넣어서 흐름에 맞게 배치
+
+예시:
+
+css
+복사
+편집
+.back-to-start-btn {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+✅ 2. 타이틀 이미지 오류 수정
+문제: 타이틀 ‘포토퍼스’ 앞의 이미지가 정상 표시되지 않음
+
+요청: 문어 이모지 🐙 사용
+
+기술 가이드:
+
+이미지가 <img> 태그로 들어간 경우 경로 오류 가능 → 이모지로 대체 권장
+
+예시:
+
+html
+복사
+편집
+<h1>🐙 포토퍼스</h1>
+✅ 3. 결과 이미지 해상도 문제
+문제: 사진 결과물의 해상도가 디바이스에 맞지 않음
+
+요청: 사용 중인 웹캠 또는 스마트기기 해상도에 자동 맞춤
+
+기술 가이드:
+
+navigator.mediaDevices.getUserMedia()로 해상도 탐색 및 설정
+
+video 엘리먼트의 videoWidth와 videoHeight를 기준으로 canvas의 크기를 조정
+
+예시:
+
+js
+복사
+편집
+canvas.width = video.videoWidth;
+canvas.height = video.videoHeight;
+✅ 4. '이전단계' 버튼 추가
+요청: '처음으로' 버튼 왼쪽에 ‘이전단계’ 버튼 추가 → 이전 단계로 돌아가는 기능
+
+기술 가이드:
+
+각 단계를 step 변수로 관리하고 setStep(step - 1) 함수 구현
+
+UI 상에서 <button onClick={() => setStep(step - 1)}>이전단계</button> 식으로 구현
+
+✅ 5. 사용자 업로드 이미지 토퍼 적용 오류
+문제: 사용자가 업로드한 이미지가 촬영 시 토퍼 이미지로 적용되지 않음
+
+요청: 업로드 이미지가 tracking topper로 정상 반영되도록 수정
+
+기술 가이드:
+
+업로드 시 이미지의 src를 <img class="topper">에 연결
+
+JS에서 input.files[0] → URL.createObjectURL() → img.src 할당
+
+js
+복사
+편집
+const file = uploadInput.files[0];
+topperImg.src = URL.createObjectURL(file);
+✅ 6. 토퍼 이미지 트래킹 기능
+문제: 토퍼 이미지가 사용자 움직임을 따라가지 않음 (고정된 위치에 있음)
+
+요청: 얼굴 또는 머리 위치를 추적하여 토퍼가 따라다니도록 기능 추가
+
+기술 가이드:
+
+MediaPipe 또는 face-api.js를 활용하여 얼굴 위치 인식
+
+감지된 머리 위치 좌표를 기준으로 topperImg.style.left/top 위치 실시간 업데이트
+
+js
+복사
+편집
+const position = faceDetectionResult;
+topperImg.style.left = `${position.x}px`;
+topperImg.style.top = `${position.y - offset}px`; // 머리 위로
+✅ 7. 프레임 순서 변경
+요청: 첫 화면에서 프레임 선택 순서를 다음과 같이 변경:
+
+한 컷 → 두 컷 → 네 컷
+
+기술 가이드:
+
+프레임 렌더링 순서를 배열 순서 변경으로 해결:
+
+js
+복사
+편집
+const frameOptions = ["1컷", "2컷", "4컷"]; // 기존 배열 순서
+✅ 8. 단계 네비게이션 자유 이동 조건 설정
+요청: 상단 단계 클릭 시 해당 단계로 자유롭게 이동하되,
+
+이전 단계가 완료되지 않았을 경우 이동 불가
+
+기술 가이드:
+
+각 단계 완료 여부를 Boolean 배열로 저장 (stepCompleted[])
+
+클릭 시 if (stepCompleted[targetStep - 1]) setStep(targetStep); 방식 적용
+
+UI:
+
+js
+복사
+편집
+<div onClick={() => handleStepClick(index)} className={stepCompleted[index - 1] ? "active" : "disabled"}>
+  {stepTitles[index]}
+</div>

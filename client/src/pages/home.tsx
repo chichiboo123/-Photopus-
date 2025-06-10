@@ -26,6 +26,7 @@ export default function Home() {
   const [selectedTopper, setSelectedTopper] = useState<TopperData | null>(null);
   const [capturedPhotos, setCapturedPhotos] = useState<string[]>([]);
   const [finalText, setFinalText] = useState("");
+  const [stepCompleted, setStepCompleted] = useState([false, false, false, false]);
 
   const resetApp = () => {
     setCurrentStep(1);
@@ -33,10 +34,28 @@ export default function Home() {
     setSelectedTopper(null);
     setCapturedPhotos([]);
     setFinalText("");
+    setStepCompleted([false, false, false, false]);
+  };
+
+  const goToPreviousStep = () => {
+    if (currentStep > 1) {
+      setCurrentStep(currentStep - 1);
+    }
+  };
+
+  const handleStepClick = (step: number) => {
+    if (step === 1 || stepCompleted[step - 2]) {
+      setCurrentStep(step);
+    }
   };
 
   const handleFrameSelect = (frame: FrameType) => {
     setSelectedFrame(frame);
+    setStepCompleted(prev => {
+      const newCompleted = [...prev];
+      newCompleted[0] = true;
+      return newCompleted;
+    });
     setCurrentStep(2);
   };
 
@@ -46,12 +65,22 @@ export default function Home() {
 
   const handleNextToCamera = () => {
     if (selectedTopper) {
+      setStepCompleted(prev => {
+        const newCompleted = [...prev];
+        newCompleted[1] = true;
+        return newCompleted;
+      });
       setCurrentStep(3);
     }
   };
 
   const handlePhotosCaptured = (photos: string[]) => {
     setCapturedPhotos(photos);
+    setStepCompleted(prev => {
+      const newCompleted = [...prev];
+      newCompleted[2] = true;
+      return newCompleted;
+    });
     setCurrentStep(4);
   };
 
@@ -66,8 +95,7 @@ export default function Home() {
         <div className="absolute inset-0 bg-gradient-to-r from-primary/10 to-secondary/10 rounded-b-3xl"></div>
         <div className="relative">
           <h1 className="font-playful text-4xl md:text-6xl font-bold text-primary mb-2 animate-bounce-gentle">
-            <img src="/octopus-logo.png" alt="포토퍼스 로고" className="inline-block mr-3 w-12 h-12 md:w-16 md:h-16" />
-            포토퍼스
+            🐙 포토퍼스
           </h1>
           <p className="text-gray-600 text-lg font-medium">재미있는 AR 토퍼와 함께 사진을 찍어보세요!</p>
         </div>
@@ -75,7 +103,7 @@ export default function Home() {
 
       <div className="container mx-auto px-4 max-w-4xl">
         {/* Step Indicator */}
-        <StepIndicator currentStep={currentStep} />
+        <StepIndicator currentStep={currentStep} stepCompleted={stepCompleted} onStepClick={handleStepClick} />
 
         {/* Step Content */}
         {currentStep === 1 && (
