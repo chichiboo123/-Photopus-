@@ -34,6 +34,15 @@ export default function TextDownload({
     fontFamily: 'Noto Sans KR'
   });
   const [frameColor, setFrameColor] = useState('#FFFFFF');
+  const [customFrameColor, setCustomFrameColor] = useState('#FFFFFF');
+
+  // Extended text colors for more variety
+  const textColors = [
+    '#FFFFFF', '#000000', '#FF0000', '#00FF00', '#0000FF', '#FFFF00',
+    '#FF00FF', '#00FFFF', '#FFA500', '#800080', '#008000', '#FFC0CB',
+    '#A52A2A', '#808080', '#000080', '#800000', '#008080', '#FFD700',
+    '#DC143C', '#4B0082', '#32CD32', '#FF1493', '#1E90FF', '#FF6347'
+  ];
 
   // 20 pastel colors for frame selection
   const pastelColors = [
@@ -118,16 +127,29 @@ export default function TextDownload({
     { label: "파란색", value: "#0000FF" },
     { label: "분홍색", value: "#FF69B4" },
     { label: "초록색", value: "#00FF00" },
+    { label: "노란색", value: "#FFFF00" },
+    { label: "보라색", value: "#800080" },
+    { label: "주황색", value: "#FFA500" },
+    { label: "갈색", value: "#A52A2A" },
+    { label: "회색", value: "#808080" },
+    { label: "남색", value: "#000080" },
+    { label: "청록색", value: "#008080" },
+    { label: "금색", value: "#FFD700" },
+    { label: "진홍색", value: "#DC143C" },
+    { label: "인디고", value: "#4B0082" },
+    { label: "라임", value: "#32CD32" },
+    { label: "하늘색", value: "#1E90FF" },
   ];
 
   const fontOptions = [
-    { label: "Noto Sans KR", value: "Noto Sans KR" },
-    { label: "Do Hyeon", value: "Do Hyeon" },
-    { label: "Jua", value: "Jua" },
-    { label: "Nanum Gothic", value: "Nanum Gothic" },
-    { label: "Black Han Sans", value: "Black Han Sans" },
-    { label: "Cute Font", value: "Cute Font" },
-    { label: "Gamja Flower", value: "Gamja Flower" },
+    { label: "Noto Sans KR", value: "Noto Sans KR, sans-serif" },
+    { label: "Do Hyeon", value: "Do Hyeon, sans-serif" },
+    { label: "Arial", value: "Arial, sans-serif" },
+    { label: "맑은 고딕", value: "Malgun Gothic, sans-serif" },
+    { label: "돋움", value: "Dotum, sans-serif" },
+    { label: "굴림", value: "Gulim, sans-serif" },
+    { label: "나눔고딕", value: "NanumGothic, sans-serif" },
+    { label: "바탕체", value: "Batang, serif" },
   ];
 
   return (
@@ -169,7 +191,7 @@ export default function TextDownload({
           {/* 프레임 색상 선택 */}
           <div className="mb-8">
             <h4 className="font-bold text-lg text-gray-800 mb-4 text-center">프레임 색상</h4>
-            <div className="grid grid-cols-5 gap-3 max-w-md mx-auto mb-6">
+            <div className="grid grid-cols-5 gap-3 max-w-md mx-auto mb-4">
               {pastelColors.map((color, index) => (
                 <button
                   key={index}
@@ -183,6 +205,21 @@ export default function TextDownload({
                   title={`색상 ${index + 1}`}
                 />
               ))}
+            </div>
+            
+            {/* Custom color picker */}
+            <div className="flex items-center justify-center space-x-3 mb-6">
+              <label className="text-sm font-medium text-gray-700">원하는 색상:</label>
+              <input
+                type="color"
+                value={customFrameColor}
+                onChange={(e) => {
+                  setCustomFrameColor(e.target.value);
+                  setFrameColor(e.target.value);
+                }}
+                className="w-12 h-12 rounded-xl border-2 border-gray-300 cursor-pointer"
+                title="사용자 정의 색상 선택"
+              />
             </div>
           </div>
 
