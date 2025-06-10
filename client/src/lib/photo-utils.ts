@@ -388,9 +388,9 @@ function drawPhotosInGrid(
 function drawTextOverlay(
   ctx: CanvasRenderingContext2D,
   text: string,
+  textStyle: TextStyle,
   canvasWidth: number,
   canvasHeight: number,
-  textStyle: TextStyle,
   frameType: FrameType
 ): void {
   ctx.save();
