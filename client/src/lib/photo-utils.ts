@@ -202,19 +202,40 @@ function drawARTopper(
   ctx.restore();
 }
 
+// Helper function to get photo aspect ratio
+async function getPhotoAspectRatio(photoDataUrl: string): Promise<number> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      resolve(img.width / img.height);
+    };
+    img.onerror = () => {
+      resolve(4 / 3); // Default fallback
+    };
+    img.src = photoDataUrl;
+  });
+}
+
 export async function generateFinalImage(
   canvas: HTMLCanvasElement,
   frameType: FrameType,
   photos: string[],
   text: string,
   textStyle: TextStyle & { fontFamily?: string },
-  frameColor: string = '#FFFFFF'
+  frameColor: string = '#FFFFFF',
+  captureAspectRatio?: number
 ): Promise<string | null> {
   const ctx = canvas.getContext('2d');
   if (!ctx) return null;
 
-  // Set canvas dimensions based on frame type
-  const canvasSize = getCanvasSize(frameType);
+  // Detect aspect ratio from first photo if not provided
+  let aspectRatio = captureAspectRatio;
+  if (!aspectRatio && photos.length > 0) {
+    aspectRatio = await getPhotoAspectRatio(photos[0]);
+  }
+
+  // Set canvas dimensions based on frame type and aspect ratio
+  const canvasSize = getCanvasSize(frameType, aspectRatio);
   canvas.width = canvasSize.width;
   canvas.height = canvasSize.height;
 
@@ -223,7 +244,7 @@ export async function generateFinalImage(
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   // Draw photos in grid layout and wait for completion
-  await drawPhotosInGrid(ctx, photos, frameType, canvas.width, canvas.height);
+  await drawPhotosInGrid(ctx, photos, frameType, canvas.width, canvas.height, aspectRatio);
 
   // Draw text overlay if provided
   if (text.trim()) {
@@ -233,14 +254,57 @@ export async function generateFinalImage(
   return canvas.toDataURL('image/png');
 }
 
-function getCanvasSize(frameType: FrameType): { width: number; height: number } {
+function getCanvasSize(frameType: FrameType, aspectRatio: number = 4/3): { width: number; height: number } {
+  const isVertical = aspectRatio < 1;
+  const textAreaHeight = 150;
+  
+  // Base dimensions that work well for photos
+  const basePhotoSize = 300;
+  
   switch (frameType) {
     case '4cut':
-      return { width: 400, height: 700 }; // 2x2 grid with extended space for text
+      if (isVertical) {
+        // Vertical: 2x2 grid
+        const photoWidth = basePhotoSize * aspectRatio;
+        const photoHeight = basePhotoSize;
+        return {
+          width: (photoWidth * 2) + 30, // 2 photos wide + margins
+          height: (photoHeight * 2) + 30 + textAreaHeight
+        };
+      } else {
+        // Horizontal: 2x2 grid
+        const photoWidth = basePhotoSize;
+        const photoHeight = basePhotoSize / aspectRatio;
+        return {
+          width: (photoWidth * 2) + 30,
+          height: (photoHeight * 2) + 30 + textAreaHeight
+        };
+      }
     case '2cut':
-      return { width: 400, height: 600 }; // 1x2 layout with extended space
+      if (isVertical) {
+        // Vertical: 1x2 layout (stacked vertically)
+        const photoWidth = basePhotoSize * aspectRatio;
+        const photoHeight = basePhotoSize;
+        return {
+          width: photoWidth + 20,
+          height: (photoHeight * 2) + 30 + textAreaHeight
+        };
+      } else {
+        // Horizontal: 2x1 layout (side by side)
+        const photoWidth = basePhotoSize;
+        const photoHeight = basePhotoSize / aspectRatio;
+        return {
+          width: (photoWidth * 2) + 30,
+          height: photoHeight + 20 + textAreaHeight
+        };
+      }
     case '1cut':
-      return { width: 400, height: 550 }; // Single photo with extended space
+      const photoWidth = basePhotoSize * (isVertical ? aspectRatio : 1);
+      const photoHeight = basePhotoSize * (isVertical ? 1 : 1/aspectRatio);
+      return {
+        width: photoWidth + 40,
+        height: photoHeight + 40 + textAreaHeight
+      };
     default:
       return { width: 400, height: 700 };
   }
@@ -251,10 +315,12 @@ function drawPhotosInGrid(
   photos: string[],
   frameType: FrameType,
   canvasWidth: number,
-  canvasHeight: number
+  canvasHeight: number,
+  aspectRatio: number = 4/3
 ): Promise<void> {
   return new Promise((resolve) => {
     const photoArea = canvasHeight - 150; // Leave 150px for text area
+    const isVertical = aspectRatio < 1;
     let photoWidth: number, photoHeight: number, cols: number, rows: number;
 
     switch (frameType) {
@@ -265,16 +331,25 @@ function drawPhotosInGrid(
         photoHeight = (photoArea - 30) / 2;
         break;
       case '2cut':
-        cols = 1;
-        rows = 2;
-        photoWidth = canvasWidth - 20; // 10px margin on each side
-        photoHeight = (photoArea - 30) / 2;
+        if (isVertical) {
+          // Vertical photos: stack vertically (1x2)
+          cols = 1;
+          rows = 2;
+          photoWidth = canvasWidth - 20;
+          photoHeight = (photoArea - 30) / 2;
+        } else {
+          // Horizontal photos: arrange side by side (2x1)
+          cols = 2;
+          rows = 1;
+          photoWidth = (canvasWidth - 30) / 2;
+          photoHeight = photoArea - 20;
+        }
         break;
       case '1cut':
         cols = 1;
         rows = 1;
-        photoWidth = canvasWidth - 40; // More margin for single photo
-        photoHeight = photoArea - 40; // Use available photo area height
+        photoWidth = canvasWidth - 40;
+        photoHeight = photoArea - 40;
         break;
       default:
         resolve();
