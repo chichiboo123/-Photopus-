@@ -100,13 +100,15 @@ export default function PhotoCapture({ frameType, topperData, onPhotosCaptured, 
       const baseTopperSize = Math.max(faceWidth * 0.4, 30);
       const adjustedTopperSize = baseTopperSize * topperSize;
       
-      // Create expanded topper list based on individual counts
+      // Create expanded topper list based on individual counts (filter out 0 count)
       const expandedToppers: { topper: TopperData; instanceIndex: number; id: string }[] = [];
       topperData.forEach((topper) => {
         const count = topperCounts[topper.id] || 1;
-        for (let i = 0; i < count; i++) {
-          const instanceId = `${topper.id}_${i}`;
-          expandedToppers.push({ topper, instanceIndex: i, id: instanceId });
+        if (count > 0) {
+          for (let i = 0; i < count; i++) {
+            const instanceId = `${topper.id}_${i}`;
+            expandedToppers.push({ topper, instanceIndex: i, id: instanceId });
+          }
         }
       });
 
@@ -193,33 +195,62 @@ export default function PhotoCapture({ frameType, topperData, onPhotosCaptured, 
     const canvasX = (x - rect.left) * scaleX;
     const canvasY = (y - rect.top) * scaleY;
     
-    // Create expanded topper list to check hit detection
+    // Create expanded topper list to check hit detection (filter out 0 count)
     const expandedToppers: { topper: TopperData; instanceIndex: number; id: string }[] = [];
     topperData.forEach((topper) => {
       const count = topperCounts[topper.id] || 1;
-      for (let i = 0; i < count; i++) {
-        const instanceId = `${topper.id}_${i}`;
-        expandedToppers.push({ topper, instanceIndex: i, id: instanceId });
+      if (count > 0) {
+        for (let i = 0; i < count; i++) {
+          const instanceId = `${topper.id}_${i}`;
+          expandedToppers.push({ topper, instanceIndex: i, id: instanceId });
+        }
       }
     });
+    
+    const faceBox = landmarks.boundingBox;
+    const faceWidth = faceBox.width * canvas.width;
+    const faceHeight = faceBox.height * canvas.height;
+    const baseTopperSize = Math.max(faceWidth * 0.4, 30);
+    const adjustedTopperSize = baseTopperSize * topperSize;
+    
+    // Base position at the top center of the face
+    const baseCenterX = (faceBox.xMin + faceBox.width / 2) * canvas.width;
+    const baseCenterY = faceBox.yMin * canvas.height - faceHeight * 0.15;
     
     // Check each topper for hit detection (reverse order for top-most first)
     for (let i = expandedToppers.length - 1; i >= 0; i--) {
       const { id } = expandedToppers[i];
       const customPos = topperPositions[id];
       
+      let topperX, topperY;
+      
       if (customPos) {
-        const distance = Math.sqrt(
-          Math.pow(canvasX - customPos.x, 2) + Math.pow(canvasY - customPos.y, 2)
-        );
-        const faceBox = landmarks.boundingBox;
-        const faceWidth = faceBox.width * canvas.width;
-        const baseTopperSize = Math.max(faceWidth * 0.4, 30);
-        const adjustedTopperSize = baseTopperSize * topperSize;
+        topperX = customPos.x;
+        topperY = customPos.y;
+      } else {
+        // Calculate default floating position
+        const time = isAnimating ? Date.now() / 1000 : 0;
+        const floatOffset = isAnimating ? Math.sin(time + i * 0.5) * 15 : 0;
+        const rotateOffset = isAnimating ? Math.cos(time * 0.7 + i * 0.3) * 5 : 0;
         
-        if (distance <= adjustedTopperSize / 2) {
-          return { id, x: canvasX, y: canvasY };
+        if (expandedToppers.length === 1) {
+          topperX = baseCenterX + rotateOffset;
+          topperY = baseCenterY + floatOffset;
+        } else {
+          const angle = (i - (expandedToppers.length - 1) / 2) * (Math.PI / (expandedToppers.length + 1));
+          const radius = Math.max(adjustedTopperSize * 1.5, 80);
+          
+          topperX = baseCenterX + Math.sin(angle) * radius + rotateOffset;
+          topperY = baseCenterY - Math.abs(Math.cos(angle)) * radius * 0.5 + floatOffset;
         }
+      }
+      
+      const distance = Math.sqrt(
+        Math.pow(canvasX - topperX, 2) + Math.pow(canvasY - topperY, 2)
+      );
+      
+      if (distance <= adjustedTopperSize / 2) {
+        return { id, x: canvasX, y: canvasY };
       }
     }
     
@@ -238,7 +269,7 @@ export default function PhotoCapture({ frameType, topperData, onPhotosCaptured, 
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
-    if (draggedTopper && canvasRef.current) {
+    if (draggedTopper && canvasRef.current && landmarks) {
       const canvas = canvasRef.current;
       const rect = canvas.getBoundingClientRect();
       const scaleX = canvas.width / rect.width;
@@ -247,11 +278,21 @@ export default function PhotoCapture({ frameType, topperData, onPhotosCaptured, 
       const canvasX = (e.clientX - rect.left) * scaleX;
       const canvasY = (e.clientY - rect.top) * scaleY;
       
+      // Calculate topper size for boundary checking
+      const faceBox = landmarks.boundingBox;
+      const faceWidth = faceBox.width * canvas.width;
+      const baseTopperSize = Math.max(faceWidth * 0.4, 30);
+      const adjustedTopperSize = baseTopperSize * topperSize;
+      
+      // Clamp position to stay within canvas bounds
+      const clampedX = Math.max(adjustedTopperSize / 2, Math.min(canvasX - dragOffset.x, canvas.width - adjustedTopperSize / 2));
+      const clampedY = Math.max(adjustedTopperSize / 2, Math.min(canvasY - dragOffset.y, canvas.height - adjustedTopperSize / 2));
+      
       setTopperPositions(prev => ({
         ...prev,
         [draggedTopper]: {
-          x: canvasX - dragOffset.x,
-          y: canvasY - dragOffset.y
+          x: clampedX,
+          y: clampedY
         }
       }));
     }
@@ -277,7 +318,7 @@ export default function PhotoCapture({ frameType, topperData, onPhotosCaptured, 
 
   const handleTouchMove = (e: React.TouchEvent) => {
     e.preventDefault();
-    if (draggedTopper && canvasRef.current) {
+    if (draggedTopper && canvasRef.current && landmarks) {
       const canvas = canvasRef.current;
       const rect = canvas.getBoundingClientRect();
       const scaleX = canvas.width / rect.width;
@@ -287,11 +328,21 @@ export default function PhotoCapture({ frameType, topperData, onPhotosCaptured, 
       const canvasX = (touch.clientX - rect.left) * scaleX;
       const canvasY = (touch.clientY - rect.top) * scaleY;
       
+      // Calculate topper size for boundary checking
+      const faceBox = landmarks.boundingBox;
+      const faceWidth = faceBox.width * canvas.width;
+      const baseTopperSize = Math.max(faceWidth * 0.4, 30);
+      const adjustedTopperSize = baseTopperSize * topperSize;
+      
+      // Clamp position to stay within canvas bounds
+      const clampedX = Math.max(adjustedTopperSize / 2, Math.min(canvasX - dragOffset.x, canvas.width - adjustedTopperSize / 2));
+      const clampedY = Math.max(adjustedTopperSize / 2, Math.min(canvasY - dragOffset.y, canvas.height - adjustedTopperSize / 2));
+      
       setTopperPositions(prev => ({
         ...prev,
         [draggedTopper]: {
-          x: canvasX - dragOffset.x,
-          y: canvasY - dragOffset.y
+          x: clampedX,
+          y: clampedY
         }
       }));
     }
@@ -513,7 +564,7 @@ export default function PhotoCapture({ frameType, topperData, onPhotosCaptured, 
                       <button
                         onClick={() => setTopperCounts(prev => ({
                           ...prev,
-                          [topper.id]: Math.max(1, (prev[topper.id] || 1) - 1)
+                          [topper.id]: Math.max(0, (prev[topper.id] || 1) - 1)
                         }))}
                         className="w-8 h-8 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
                       >
@@ -530,19 +581,6 @@ export default function PhotoCapture({ frameType, topperData, onPhotosCaptured, 
                         className="w-8 h-8 bg-green-500 text-white rounded-full hover:bg-green-600 transition-colors"
                       >
                         +
-                      </button>
-                      <button
-                        onClick={() => {
-                          // Remove topper from the parent component
-                          const topperToRemove = topperData.find(t => t.id === topper.id);
-                          if (topperToRemove) {
-                            onRemoveTopper(topper.id);
-                          }
-                        }}
-                        className="w-8 h-8 bg-red-600 text-white rounded-full hover:bg-red-700 transition-colors ml-2"
-                        title="토퍼 삭제"
-                      >
-                        <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
                   </div>
