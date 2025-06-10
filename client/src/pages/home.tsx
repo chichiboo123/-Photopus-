@@ -162,7 +162,7 @@ export default function Home() {
 
       {/* Footer */}
       <footer className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-sm py-4 text-center z-10">
-        <p className="font-footer text-gray-500 text-sm">
+        <p className="font-footer text-gray-500 text-base">
           created by.{" "}
           <a 
             href="https://litt.ly/chichiboo" 

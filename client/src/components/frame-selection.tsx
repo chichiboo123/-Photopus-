@@ -22,7 +22,7 @@ const frameOptions = [
     type: "2cut" as FrameType,
     title: "두컷 사진",
     description: "2장으로 간단하게 찍어요",
-    icon: Grid3X3,
+    icon: Grid2X2,
     gradient: "from-secondary to-teal-300",
     gridCols: "grid-cols-1",
     aspectRatio: "aspect-video",
@@ -75,7 +75,7 @@ export default function FrameSelection({ onFrameSelect }: FrameSelectionProps) {
                       key={index}
                       className={`${option.aspectRatio} bg-white rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center`}
                     >
-                      <Camera className="text-gray-400 w-6 h-6" />
+                      <span className="text-2xl">🐙</span>
                     </div>
                   ))}
                 </div>

@@ -180,7 +180,7 @@ export default function TopperDesign({ onTopperSelect, selectedTopper, onNext }:
         </CardContent>
       </Card>
 
-      <div className="text-center">
+      <div className="text-center mt-12">
         <Button 
           onClick={onNext}
           className="button-primary text-white px-12 py-4 rounded-2xl font-bold text-xl"
