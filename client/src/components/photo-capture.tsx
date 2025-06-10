@@ -120,15 +120,17 @@ export default function PhotoCapture({ frameType, topperData, onPhotosCaptured, 
         // Check if topper has custom position from dragging
         const customPos = topperPositions[id];
         
+        // Calculate base floating animation
+        const time = isAnimating ? Date.now() / 1000 : 0;
+        const floatOffset = isAnimating ? Math.sin(time + index * 0.5) * 15 : 0;
+        const rotateOffset = isAnimating ? Math.cos(time * 0.7 + index * 0.3) * 5 : 0;
+        
         if (customPos) {
-          topperX = customPos.x;
-          topperY = customPos.y;
+          // Apply floating animation to custom dragged positions
+          topperX = customPos.x + (isAnimating ? rotateOffset * 0.3 : 0);
+          topperY = customPos.y + (isAnimating ? floatOffset * 0.5 : 0);
         } else {
           // Calculate default floating position
-          const time = isAnimating ? Date.now() / 1000 : 0;
-          const floatOffset = isAnimating ? Math.sin(time + index * 0.5) * 15 : 0;
-          const rotateOffset = isAnimating ? Math.cos(time * 0.7 + index * 0.3) * 5 : 0;
-          
           if (totalToppers === 1) {
             topperX = baseCenterX + rotateOffset;
             topperY = baseCenterY + floatOffset;
@@ -564,19 +566,19 @@ export default function PhotoCapture({ frameType, topperData, onPhotosCaptured, 
                       <button
                         onClick={() => setTopperCounts(prev => ({
                           ...prev,
-                          [topper.id]: Math.max(0, (prev[topper.id] || 1) - 1)
+                          [topper.id]: Math.max(0, (prev[topper.id] !== undefined ? prev[topper.id] : 1) - 1)
                         }))}
                         className="w-8 h-8 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
                       >
                         -
                       </button>
                       <span className="w-8 text-center font-medium">
-                        {topperCounts[topper.id] || 1}
+                        {topperCounts[topper.id] !== undefined ? topperCounts[topper.id] : 1}
                       </span>
                       <button
                         onClick={() => setTopperCounts(prev => ({
                           ...prev,
-                          [topper.id]: Math.min(10, (prev[topper.id] || 1) + 1)
+                          [topper.id]: Math.min(10, (prev[topper.id] !== undefined ? prev[topper.id] : 1) + 1)
                         }))}
                         className="w-8 h-8 bg-green-500 text-white rounded-full hover:bg-green-600 transition-colors"
                       >
