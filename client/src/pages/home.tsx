@@ -66,7 +66,7 @@ export default function Home() {
         <div className="absolute inset-0 bg-gradient-to-r from-primary/10 to-secondary/10 rounded-b-3xl"></div>
         <div className="relative">
           <h1 className="font-playful text-4xl md:text-6xl font-bold text-primary mb-2 animate-bounce-gentle">
-            <Camera className="inline-block mr-3" />
+            <img src="/client/src/assets/octopus-logo.png" alt="포토퍼스 로고" className="inline-block mr-3 w-12 h-12 md:w-16 md:h-16" />
             포토퍼스
           </h1>
           <p className="text-gray-600 text-lg font-medium">재미있는 AR 토퍼와 함께 사진을 찍어보세요!</p>
@@ -122,8 +122,8 @@ export default function Home() {
       </div>
 
       {/* Footer */}
-      <footer className="mt-16 pb-20 text-center">
-        <p className="text-gray-500 text-sm">
+      <footer className="fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-sm py-4 text-center z-10">
+        <p className="font-footer text-gray-500 text-sm">
           created by.{" "}
           <a 
             href="https://litt.ly/chichiboo" 
@@ -132,7 +132,6 @@ export default function Home() {
             className="text-primary hover:text-primary/80 font-medium transition-colors duration-300"
           >
             교육뮤지컬 꿈꾸는 치수쌤
-            <span className="ml-1 text-xs">🔗</span>
           </a>
         </p>
       </footer>
