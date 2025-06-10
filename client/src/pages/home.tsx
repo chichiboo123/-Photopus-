@@ -82,8 +82,9 @@ export default function Home() {
     }
   };
 
-  const handlePhotosCaptured = (photos: string[]) => {
+  const handlePhotosCaptured = (photos: string[], aspectRatio?: number) => {
     setCapturedPhotos(photos);
+    setCaptureAspectRatio(aspectRatio);
     setStepCompleted(prev => {
       const newCompleted = [...prev];
       newCompleted[2] = true;
@@ -144,6 +145,7 @@ export default function Home() {
             finalText={finalText}
             onTextChange={handleTextChange}
             onStartOver={resetApp}
+            captureAspectRatio={captureAspectRatio}
           />
         )}
       </div>
