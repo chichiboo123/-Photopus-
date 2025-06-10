@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useState, useCallback } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Camera, RotateCcw, RotateCw, Eye, EyeOff } from "lucide-react";
+import { Camera, RotateCcw, RotateCw, Play, Pause, Trash2 } from "lucide-react";
 import { FrameType, TopperData } from "@/pages/home";
 import { useCamera } from "@/hooks/use-camera";
 import { useMediaPipe } from "@/hooks/use-mediapipe";
@@ -11,9 +11,10 @@ interface PhotoCaptureProps {
   frameType: FrameType;
   topperData: TopperData[];
   onPhotosCaptured: (photos: string[]) => void;
+  onRemoveTopper: (topperId: string) => void;
 }
 
-export default function PhotoCapture({ frameType, topperData, onPhotosCaptured }: PhotoCaptureProps) {
+export default function PhotoCapture({ frameType, topperData, onPhotosCaptured, onRemoveTopper }: PhotoCaptureProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [capturedPhotos, setCapturedPhotos] = useState<string[]>([]);
@@ -24,6 +25,10 @@ export default function PhotoCapture({ frameType, topperData, onPhotosCaptured }
   const [showTopper, setShowTopper] = useState(true);
   const [topperCounts, setTopperCounts] = useState<{[key: string]: number}>({});
   const [topperSize, setTopperSize] = useState(1.0);
+  const [isAnimating, setIsAnimating] = useState(true);
+  const [topperPositions, setTopperPositions] = useState<{[key: string]: {x: number, y: number}}>({});
+  const [draggedTopper, setDraggedTopper] = useState<string | null>(null);
+  const [dragOffset, setDragOffset] = useState({x: 0, y: 0});
 
   const { stream, error: cameraError } = useCamera();
   const { landmarks, isReady: mediaPipeReady } = useMediaPipe(videoRef.current);
@@ -302,11 +307,11 @@ export default function PhotoCapture({ frameType, topperData, onPhotosCaptured }
             <Button
               variant="outline"
               size="lg"
-              onClick={() => setShowTopper(!showTopper)}
-              className={`p-4 rounded-2xl ${showTopper ? 'bg-primary text-white' : ''}`}
-              title={showTopper ? "토퍼 숨기기" : "토퍼 보이기"}
+              onClick={() => setIsAnimating(!isAnimating)}
+              className={`p-4 rounded-2xl ${isAnimating ? 'bg-green-500 text-white' : 'bg-gray-400 text-white'}`}
+              title={isAnimating ? "토퍼 애니메이션 일시정지" : "토퍼 애니메이션 재생"}
             >
-              {showTopper ? <EyeOff className="w-6 h-6" /> : <Eye className="w-6 h-6" />}
+              {isAnimating ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6" />}
             </Button>
           </div>
 
@@ -373,6 +378,19 @@ export default function PhotoCapture({ frameType, topperData, onPhotosCaptured }
                         className="w-8 h-8 bg-green-500 text-white rounded-full hover:bg-green-600 transition-colors"
                       >
                         +
+                      </button>
+                      <button
+                        onClick={() => {
+                          // Remove topper from the parent component
+                          const topperToRemove = topperData.find(t => t.id === topper.id);
+                          if (topperToRemove) {
+                            onRemoveTopper(topper.id);
+                          }
+                        }}
+                        className="w-8 h-8 bg-red-600 text-white rounded-full hover:bg-red-700 transition-colors ml-2"
+                        title="토퍼 삭제"
+                      >
+                        <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
                   </div>
