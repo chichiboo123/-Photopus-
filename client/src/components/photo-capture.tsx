@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState, useCallback } from "react";
+import { useRef, useEffect, useState, useCallback, useMemo } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Camera, RotateCcw, RotateCw, Play, Pause, Trash2 } from "lucide-react";
@@ -34,6 +34,21 @@ export default function PhotoCapture({ frameType, topperData, onPhotosCaptured, 
   const { landmarks, isReady: mediaPipeReady } = useMediaPipe(videoRef.current);
 
   const requiredPhotos = frameType === '4cut' ? 4 : frameType === '2cut' ? 2 : 1;
+
+  // Memoize expanded toppers to prevent setState during render warning
+  const expandedToppers = useMemo(() => {
+    const result: { topper: TopperData; instanceIndex: number; id: string }[] = [];
+    topperData.forEach((topper) => {
+      const count = topperCounts[topper.id] !== undefined ? topperCounts[topper.id] : 1;
+      if (count > 0) {
+        for (let i = 0; i < count; i++) {
+          const instanceId = `${topper.id}_${i}`;
+          result.push({ topper, instanceIndex: i, id: instanceId });
+        }
+      }
+    });
+    return result;
+  }, [topperData, topperCounts]);
 
   useEffect(() => {
     if (stream && videoRef.current) {
@@ -100,17 +115,7 @@ export default function PhotoCapture({ frameType, topperData, onPhotosCaptured, 
       const baseTopperSize = Math.max(faceWidth * 0.4, 30);
       const adjustedTopperSize = baseTopperSize * topperSize;
       
-      // Create expanded topper list based on individual counts (filter out 0 count)
-      const expandedToppers: { topper: TopperData; instanceIndex: number; id: string }[] = [];
-      topperData.forEach((topper) => {
-        const count = topperCounts[topper.id] !== undefined ? topperCounts[topper.id] : 1;
-        if (count > 0) {
-          for (let i = 0; i < count; i++) {
-            const instanceId = `${topper.id}_${i}`;
-            expandedToppers.push({ topper, instanceIndex: i, id: instanceId });
-          }
-        }
-      });
+      // Use memoized expanded toppers
 
       // Arrange multiple toppers with floating animation and drag support
       expandedToppers.forEach(({ topper, instanceIndex, id }, index) => {
