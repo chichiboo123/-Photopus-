@@ -10,7 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 
 interface TextDownloadProps {
   frameType: FrameType;
-  topperData: TopperData;
+  topperData: TopperData[];
   photos: string[];
   finalText: string;
   onTextChange: (text: string) => void;

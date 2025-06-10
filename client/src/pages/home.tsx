@@ -146,7 +146,7 @@ export default function Home() {
       </div>
 
       {/* Bottom Navigation */}
-      <div className="container mx-auto px-4 max-w-4xl mb-6">
+      <div className="container mx-auto px-4 max-w-4xl mb-6 mt-16">
         <div className="flex justify-center space-x-4">
           {currentStep > 1 && (
             <Button 
