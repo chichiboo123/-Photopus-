@@ -79,43 +79,52 @@ export async function capturePhotoWithAR(
   const ctx = canvas.getContext('2d');
   if (!ctx) return null;
 
-  // Set canvas size to match video's actual resolution
+  // Create a temporary canvas for capture to avoid interference with the display canvas
+  const captureCanvas = document.createElement('canvas');
+  const captureCtx = captureCanvas.getContext('2d');
+  if (!captureCtx) return null;
+
+  // Set capture canvas size to match video's actual resolution
   const videoWidth = video.videoWidth || video.clientWidth;
   const videoHeight = video.videoHeight || video.clientHeight;
-  canvas.width = videoWidth;
-  canvas.height = videoHeight;
+  captureCanvas.width = videoWidth;
+  captureCanvas.height = videoHeight;
 
-  // Clear canvas first
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  // Clear capture canvas
+  captureCtx.clearRect(0, 0, captureCanvas.width, captureCanvas.height);
 
-  // Save context state
-  ctx.save();
-
-  // Apply transforms for video
+  // Step 1: Draw video frame with transforms
+  console.log('Step 1: Drawing video frame', { videoWidth, videoHeight, flipHorizontal, flipVertical });
+  captureCtx.save();
   if (flipHorizontal) {
-    ctx.scale(-1, 1);
-    ctx.translate(-canvas.width, 0);
+    captureCtx.scale(-1, 1);
+    captureCtx.translate(-captureCanvas.width, 0);
   }
   if (flipVertical) {
-    ctx.scale(1, -1);
-    ctx.translate(0, -canvas.height);
+    captureCtx.scale(1, -1);
+    captureCtx.translate(0, -captureCanvas.height);
   }
+  captureCtx.drawImage(video, 0, 0, videoWidth, videoHeight);
+  captureCtx.restore();
+  console.log('Step 1 completed: Video frame drawn');
 
-  // Draw video frame first
-  ctx.drawImage(video, 0, 0, videoWidth, videoHeight);
-
-  // Restore context state before drawing toppers
-  ctx.restore();
-
-  // Draw AR toppers on top of video frame (without transforms)
+  // Step 2: Draw AR toppers on top (without transforms, using adjusted landmarks)
   if (showTopper && landmarks && landmarks.landmarks.length > 0 && topperData.length > 0) {
-    // Apply flip transforms to landmarks if needed
-    const adjustedLandmarks = adjustLandmarksForFlip(landmarks, flipHorizontal, flipVertical, canvas.width, canvas.height);
-    await drawMultipleARToppers(ctx, adjustedLandmarks, topperData, canvas.width, canvas.height, topperCounts, topperPositions, topperSize);
+    console.log('Step 2: Drawing toppers', { 
+      showTopper, 
+      landmarksCount: landmarks.landmarks.length, 
+      topperCount: topperData.length,
+      topperData: topperData.map(t => ({ type: t.type, id: t.id }))
+    });
+    const adjustedLandmarks = adjustLandmarksForFlip(landmarks, flipHorizontal, flipVertical, captureCanvas.width, captureCanvas.height);
+    await drawMultipleARToppers(captureCtx, adjustedLandmarks, topperData, captureCanvas.width, captureCanvas.height, topperCounts, topperPositions, topperSize);
+    console.log('Step 2 completed: Toppers drawn');
+  } else {
+    console.log('Step 2 skipped:', { showTopper, hasLandmarks: !!landmarks, landmarksLength: landmarks?.landmarks.length, topperCount: topperData.length });
   }
 
-  // Return base64 image data
-  return canvas.toDataURL('image/png');
+  // Return base64 image data from capture canvas
+  return captureCanvas.toDataURL('image/png');
 }
 
 async function drawMultipleARToppers(
@@ -181,20 +190,38 @@ async function drawARTopper(
   const safeX = Math.max(topperSize / 2, Math.min(topperX, canvasWidth - topperSize / 2));
   const safeY = Math.max(topperSize / 2, Math.min(topperY, canvasHeight - topperSize / 2));
 
-  ctx.save();
-  ctx.translate(safeX, safeY);
-
   if (topperData.type === 'emoji') {
+    ctx.save();
+    ctx.translate(safeX, safeY);
     ctx.font = `${topperSize}px Arial`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(topperData.data, 0, 0);
+    ctx.restore();
   } else if (topperData.type === 'upload') {
-    // Use Promise-based approach for uploaded images
-    await new Promise<void>((resolve) => {
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
+    // Create image and wait for it to load completely before drawing
+    console.log('Drawing upload topper:', { id: topperData.id, dataLength: topperData.data.length });
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    
+    const imageLoaded = new Promise<boolean>((resolve) => {
       img.onload = () => {
+        console.log('Upload topper image loaded successfully:', { id: topperData.id, width: img.width, height: img.height });
+        resolve(true);
+      };
+      img.onerror = () => {
+        console.error('Failed to load topper image:', topperData.data);
+        resolve(false);
+      };
+      img.src = topperData.data;
+    });
+
+    const loaded = await imageLoaded;
+    if (loaded && img.complete) {
+      console.log('Drawing upload topper at position:', { safeX, safeY, topperSize });
+      ctx.save();
+      ctx.translate(safeX, safeY);
+      try {
         ctx.drawImage(
           img,
           -topperSize / 2,
@@ -202,17 +229,15 @@ async function drawARTopper(
           topperSize,
           topperSize
         );
-        resolve();
-      };
-      img.onerror = () => {
-        console.error('Failed to load topper image:', topperData.data);
-        resolve();
-      };
-      img.src = topperData.data;
-    });
+        console.log('Upload topper drawn successfully');
+      } catch (error) {
+        console.error('Error drawing topper image:', error);
+      }
+      ctx.restore();
+    } else {
+      console.log('Upload topper not drawn - image not loaded');
+    }
   }
-
-  ctx.restore();
 }
 
 // Helper function to get photo aspect ratio
