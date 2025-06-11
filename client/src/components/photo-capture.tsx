@@ -544,7 +544,7 @@ export default function PhotoCapture({ frameType, topperData, onPhotosCaptured, 
                   <input
                     type="range"
                     min="0.5"
-                    max="2.0"
+                    max="4.0"
                     step="0.1"
                     value={topperSize}
                     onChange={(e) => setTopperSize(parseFloat(e.target.value))}
