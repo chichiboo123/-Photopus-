@@ -31,7 +31,7 @@ jobs:
         run: npm ci
 
       - name: Build React application
-        run: npx vite build
+        run: npx vite build --base=/Photopus/
         working-directory: ./client
         env:
           NODE_ENV: production
