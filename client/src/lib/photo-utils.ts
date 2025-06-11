@@ -19,7 +19,7 @@ interface TextStyle {
   fontFamily?: string;
 }
 
-export function capturePhotoWithAR(
+export async function capturePhotoWithAR(
   video: HTMLVideoElement,
   canvas: HTMLCanvasElement,
   landmarks: FaceDetection | null,
@@ -30,7 +30,7 @@ export function capturePhotoWithAR(
   topperCounts?: {[key: string]: number},
   topperPositions?: {[key: string]: {x: number, y: number}},
   topperSize?: number
-): string | null {
+): Promise<string | null> {
   if (!video.videoWidth || !video.videoHeight) return null;
 
   const ctx = canvas.getContext('2d');
@@ -60,7 +60,7 @@ export function capturePhotoWithAR(
 
   // Draw AR toppers if enabled and landmarks detected
   if (showTopper && landmarks && landmarks.landmarks.length > 0 && topperData.length > 0) {
-    drawMultipleARToppers(ctx, landmarks, topperData, canvas.width, canvas.height, topperCounts, topperPositions, topperSize);
+    await drawMultipleARToppers(ctx, landmarks, topperData, canvas.width, canvas.height, topperCounts, topperPositions, topperSize);
   }
 
   // Restore context state
@@ -70,7 +70,7 @@ export function capturePhotoWithAR(
   return canvas.toDataURL('image/png');
 }
 
-function drawMultipleARToppers(
+async function drawMultipleARToppers(
   ctx: CanvasRenderingContext2D,
   landmarks: FaceDetection,
   topperData: TopperData[],
@@ -79,7 +79,7 @@ function drawMultipleARToppers(
   topperCounts?: {[key: string]: number},
   topperPositions?: {[key: string]: {x: number, y: number}},
   topperSizeMultiplier: number = 1.0
-): void {
+): Promise<void> {
   // Create expanded toppers array based on counts and user positions
   const expandedToppers: { topper: TopperData; instanceIndex: number; id: string }[] = [];
   
@@ -101,6 +101,34 @@ function drawMultipleARToppers(
   const baseTopperSize = Math.max(faceWidth * 0.4, 30);
   const finalTopperSize = baseTopperSize * (topperSizeMultiplier || 1.0);
   
+  // Pre-load all upload images
+  const imageCache = new Map<string, HTMLImageElement>();
+  const imagePromises = expandedToppers
+    .filter(({ topper }) => topper.type === 'upload')
+    .map(({ topper }) => {
+      if (imageCache.has(topper.data)) {
+        return Promise.resolve();
+      }
+      
+      return new Promise<void>((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+          imageCache.set(topper.data, img);
+          resolve();
+        };
+        img.onerror = () => {
+          console.warn('Failed to load topper image:', topper.data);
+          resolve(); // Continue even if image fails to load
+        };
+        img.src = topper.data;
+      });
+    });
+
+  // Wait for all images to load
+  await Promise.all(imagePromises);
+  
+  // Now draw all toppers synchronously
   expandedToppers.forEach(({ topper, instanceIndex, id }) => {
     // Use exact user-set position if available
     let topperX, topperY;
@@ -134,9 +162,8 @@ function drawMultipleARToppers(
       ctx.textBaseline = 'middle';
       ctx.fillText(topper.data, 0, 0);
     } else if (topper.type === 'upload') {
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      img.onload = () => {
+      const img = imageCache.get(topper.data);
+      if (img) {
         ctx.drawImage(
           img,
           -finalTopperSize / 2,
@@ -144,8 +171,7 @@ function drawMultipleARToppers(
           finalTopperSize,
           finalTopperSize
         );
-      };
-      img.src = topper.data;
+      }
     }
 
     ctx.restore();

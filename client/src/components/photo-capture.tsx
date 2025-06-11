@@ -395,35 +395,39 @@ export default function PhotoCapture({ frameType, topperData, onPhotosCaptured, 
     }, 1000);
   };
 
-  const capturePhoto = () => {
+  const capturePhoto = async () => {
     if (!videoRef.current || !canvasRef.current) return;
 
-    const photo = capturePhotoWithAR(
-      videoRef.current,
-      canvasRef.current,
-      landmarks,
-      topperData,
-      showTopper,
-      flipHorizontal,
-      flipVertical,
-      topperCounts,
-      topperPositions,
-      topperSize
-    );
+    try {
+      const photo = await capturePhotoWithAR(
+        videoRef.current,
+        canvasRef.current,
+        landmarks,
+        topperData,
+        showTopper,
+        flipHorizontal,
+        flipVertical,
+        topperCounts,
+        topperPositions,
+        topperSize
+      );
 
-    if (photo) {
-      const newPhotos = [...capturedPhotos, photo];
-      setCapturedPhotos(newPhotos);
-      
-      // Calculate and pass aspect ratio from video
-      const video = videoRef.current;
-      const aspectRatio = video.videoWidth / video.videoHeight;
-      
-      // Check if we have enough photos for the frame type
-      const requiredPhotos = frameType === '4cut' ? 4 : frameType === '2cut' ? 2 : 1;
-      if (newPhotos.length >= requiredPhotos) {
-        onPhotosCaptured(newPhotos, aspectRatio);
+      if (photo) {
+        const newPhotos = [...capturedPhotos, photo];
+        setCapturedPhotos(newPhotos);
+        
+        // Calculate and pass aspect ratio from video
+        const video = videoRef.current;
+        const aspectRatio = video ? video.videoWidth / video.videoHeight : 16/9;
+        
+        // Check if we have enough photos for the frame type
+        const requiredPhotos = frameType === '4cut' ? 4 : frameType === '2cut' ? 2 : 1;
+        if (newPhotos.length >= requiredPhotos) {
+          onPhotosCaptured(newPhotos, aspectRatio);
+        }
       }
+    } catch (error) {
+      console.error('Error capturing photo:', error);
     }
   };
 
