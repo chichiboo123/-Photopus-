@@ -19,6 +19,49 @@ interface TextStyle {
   fontFamily?: string;
 }
 
+// Helper function to adjust landmarks for flip transforms
+function adjustLandmarksForFlip(
+  landmarks: FaceDetection,
+  flipHorizontal: boolean,
+  flipVertical: boolean,
+  canvasWidth: number,
+  canvasHeight: number
+): FaceDetection {
+  if (!flipHorizontal && !flipVertical) {
+    return landmarks;
+  }
+
+  const adjustedLandmarks = { ...landmarks };
+  
+  // Adjust bounding box
+  let { xMin, yMin, width, height } = landmarks.boundingBox;
+  
+  if (flipHorizontal) {
+    xMin = 1 - xMin - width;
+  }
+  if (flipVertical) {
+    yMin = 1 - yMin - height;
+  }
+  
+  adjustedLandmarks.boundingBox = { xMin, yMin, width, height };
+  
+  // Adjust individual landmarks
+  adjustedLandmarks.landmarks = landmarks.landmarks.map(point => {
+    let { x, y, z } = point;
+    
+    if (flipHorizontal) {
+      x = 1 - x;
+    }
+    if (flipVertical) {
+      y = 1 - y;
+    }
+    
+    return { x, y, z };
+  });
+  
+  return adjustedLandmarks;
+}
+
 export async function capturePhotoWithAR(
   video: HTMLVideoElement,
   canvas: HTMLCanvasElement,
@@ -42,10 +85,13 @@ export async function capturePhotoWithAR(
   canvas.width = videoWidth;
   canvas.height = videoHeight;
 
+  // Clear canvas first
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
   // Save context state
   ctx.save();
 
-  // Apply transforms
+  // Apply transforms for video
   if (flipHorizontal) {
     ctx.scale(-1, 1);
     ctx.translate(-canvas.width, 0);
@@ -55,16 +101,18 @@ export async function capturePhotoWithAR(
     ctx.translate(0, -canvas.height);
   }
 
-  // Draw video frame
+  // Draw video frame first
   ctx.drawImage(video, 0, 0, videoWidth, videoHeight);
 
-  // Draw AR toppers if enabled and landmarks detected
-  if (showTopper && landmarks && landmarks.landmarks.length > 0 && topperData.length > 0) {
-    await drawMultipleARToppers(ctx, landmarks, topperData, canvas.width, canvas.height, topperCounts, topperPositions, topperSize);
-  }
-
-  // Restore context state
+  // Restore context state before drawing toppers
   ctx.restore();
+
+  // Draw AR toppers on top of video frame (without transforms)
+  if (showTopper && landmarks && landmarks.landmarks.length > 0 && topperData.length > 0) {
+    // Apply flip transforms to landmarks if needed
+    const adjustedLandmarks = adjustLandmarksForFlip(landmarks, flipHorizontal, flipVertical, canvas.width, canvas.height);
+    await drawMultipleARToppers(ctx, adjustedLandmarks, topperData, canvas.width, canvas.height, topperCounts, topperPositions, topperSize);
+  }
 
   // Return base64 image data
   return canvas.toDataURL('image/png');
@@ -78,13 +126,13 @@ async function drawMultipleARToppers(
   canvasHeight: number,
   topperCounts?: {[key: string]: number},
   topperPositions?: {[key: string]: {x: number, y: number}},
-  topperSizeMultiplier: number = 1.0
+  topperSize?: number
 ): Promise<void> {
-  // Create expanded toppers array based on counts and user positions
+  // Get all topper instances to render
   const expandedToppers: { topper: TopperData; instanceIndex: number; id: string }[] = [];
   
-  topperData.forEach((topper) => {
-    const count = topperCounts?.[topper.id] ?? 1;
+  topperData.forEach(topper => {
+    const count = topperCounts?.[topper.id] || topper.count || 1;
     for (let i = 0; i < count; i++) {
       expandedToppers.push({
         topper,
@@ -94,109 +142,41 @@ async function drawMultipleARToppers(
     }
   });
 
-  const faceBox = landmarks.boundingBox;
-  const faceWidth = faceBox.width * canvasWidth;
-  
-  // Calculate topper size using user-set multiplier
-  const baseTopperSize = Math.max(faceWidth * 0.4, 30);
-  const finalTopperSize = baseTopperSize * (topperSizeMultiplier || 1.0);
-  
-  // Pre-load all upload images
-  const imageCache = new Map<string, HTMLImageElement>();
-  const imagePromises = expandedToppers
-    .filter(({ topper }) => topper.type === 'upload')
-    .map(({ topper }) => {
-      if (imageCache.has(topper.data)) {
-        return Promise.resolve();
-      }
-      
-      return new Promise<void>((resolve, reject) => {
-        const img = new Image();
-        img.crossOrigin = 'anonymous';
-        img.onload = () => {
-          imageCache.set(topper.data, img);
-          resolve();
-        };
-        img.onerror = () => {
-          console.warn('Failed to load topper image:', topper.data);
-          resolve(); // Continue even if image fails to load
-        };
-        img.src = topper.data;
-      });
-    });
-
-  // Wait for all images to load
-  await Promise.all(imagePromises);
-  
-  // Now draw all toppers synchronously
-  expandedToppers.forEach(({ topper, instanceIndex, id }) => {
-    // Use exact user-set position if available
-    let topperX, topperY;
-    
-    if (topperPositions?.[id]) {
-      // Convert preview coordinates to capture canvas coordinates
-      const userPos = topperPositions[id];
-      topperX = userPos.x * canvasWidth;
-      topperY = userPos.y * canvasHeight;
-    } else {
-      // Default positioning as fallback
-      const baseCenterX = (faceBox.xMin + faceBox.width / 2) * canvasWidth;
-      const baseCenterY = faceBox.yMin * canvasHeight - faceWidth * 0.15;
-      
-      const angle = instanceIndex * 0.3;
-      const radius = finalTopperSize * 0.8;
-      topperX = baseCenterX + Math.sin(angle) * radius;
-      topperY = baseCenterY - Math.cos(angle) * radius * 0.3;
-    }
-    
-    // Ensure toppers stay within canvas bounds
-    const safeX = Math.max(finalTopperSize / 2, Math.min(topperX, canvasWidth - finalTopperSize / 2));
-    const safeY = Math.max(finalTopperSize / 2, Math.min(topperY, canvasHeight - finalTopperSize / 2));
-
-    ctx.save();
-    ctx.translate(safeX, safeY);
-
-    if (topper.type === 'emoji') {
-      ctx.font = `${finalTopperSize}px Arial`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(topper.data, 0, 0);
-    } else if (topper.type === 'upload') {
-      const img = imageCache.get(topper.data);
-      if (img) {
-        ctx.drawImage(
-          img,
-          -finalTopperSize / 2,
-          -finalTopperSize / 2,
-          finalTopperSize,
-          finalTopperSize
-        );
-      }
-    }
-
-    ctx.restore();
+  // Create promises for all toppers to ensure proper async handling
+  const topperPromises = expandedToppers.map(async ({ topper, instanceIndex, id }) => {
+    await drawARTopper(ctx, landmarks, topper, canvasWidth, canvasHeight, topperPositions?.[id], topperSize);
   });
+
+  // Wait for all toppers to be drawn
+  await Promise.all(topperPromises);
 }
 
-function drawARTopper(
+async function drawARTopper(
   ctx: CanvasRenderingContext2D,
   landmarks: FaceDetection,
   topperData: TopperData,
   canvasWidth: number,
-  canvasHeight: number
-): void {
-  // Use face bounding box for better positioning
-  const faceBox = landmarks.boundingBox;
-  const faceWidth = faceBox.width * canvasWidth;
-  const faceHeight = faceBox.height * canvasHeight;
+  canvasHeight: number,
+  customPosition?: {x: number, y: number},
+  customSize?: number
+): Promise<void> {
+  if (landmarks.landmarks.length === 0) return;
+
+  // Get topper position and size
+  let topperX, topperY, topperSize;
   
-  // Position topper at the top center of the face, slightly above
-  const topperX = (faceBox.xMin + faceBox.width / 2) * canvasWidth;
-  const topperY = faceBox.yMin * canvasHeight - faceHeight * 0.15; // Position above forehead
-  
-  // Calculate topper size based on face width
-  const topperSize = Math.max(faceWidth * 0.5, 40);
-  
+  if (customPosition) {
+    topperX = customPosition.x * canvasWidth;
+    topperY = customPosition.y * canvasHeight;
+  } else {
+    // Default to forehead position (top center of face)
+    const topPoint = landmarks.landmarks[10] || landmarks.landmarks[0];
+    topperX = topPoint.x * canvasWidth;
+    topperY = topPoint.y * canvasHeight - 50; // Slightly above the landmark
+  }
+
+  topperSize = customSize || Math.min(canvasWidth, canvasHeight) * 0.15;
+
   // Clamp position to stay within canvas bounds
   const safeX = Math.max(topperSize / 2, Math.min(topperX, canvasWidth - topperSize / 2));
   const safeY = Math.max(topperSize / 2, Math.min(topperY, canvasHeight - topperSize / 2));
@@ -210,19 +190,26 @@ function drawARTopper(
     ctx.textBaseline = 'middle';
     ctx.fillText(topperData.data, 0, 0);
   } else if (topperData.type === 'upload') {
-    // For photo capture, create image synchronously
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = () => {
-      ctx.drawImage(
-        img,
-        -topperSize / 2,
-        -topperSize / 2,
-        topperSize,
-        topperSize
-      );
-    };
-    img.src = topperData.data;
+    // Use Promise-based approach for uploaded images
+    await new Promise<void>((resolve) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        ctx.drawImage(
+          img,
+          -topperSize / 2,
+          -topperSize / 2,
+          topperSize,
+          topperSize
+        );
+        resolve();
+      };
+      img.onerror = () => {
+        console.error('Failed to load topper image:', topperData.data);
+        resolve();
+      };
+      img.src = topperData.data;
+    });
   }
 
   ctx.restore();
@@ -308,12 +295,12 @@ function getCanvasSize(frameType: FrameType, aspectRatio: number = 4/3): { width
       }
     }
     case '2cut': {
-      // Always use vertical stacking for 2-cut photos
-      const photoWidth = basePhotoSize * (isVertical ? aspectRatio : 1);
-      const photoHeight = basePhotoSize * (isVertical ? 1 : 1/aspectRatio);
+      // Always stack vertically for 2-cut photos
+      const photoWidth = basePhotoSize * aspectRatio;
+      const photoHeight = basePhotoSize;
       return {
-        width: photoWidth + 20,
-        height: (photoHeight * 2) + 30 + textAreaHeight
+        width: photoWidth + 40,
+        height: (photoHeight * 2) + 50 + textAreaHeight
       };
     }
     case '1cut': {
@@ -419,71 +406,61 @@ function drawTextOverlay(
   canvasHeight: number,
   frameType: FrameType
 ): void {
-  ctx.save();
+  // Position text at the bottom
+  const textY = canvasHeight - 40;
+  const textX = canvasWidth / 2;
 
-  // Set font style
-  let fontSize = 24;
-  let fontWeight = textStyle.bold ? 'bold' : 'normal';
-  let fontStyle = textStyle.italic ? 'italic' : 'normal';
-  let fontFamily = textStyle.fontFamily || 'Noto Sans KR';
-  
-  ctx.font = `${fontStyle} ${fontWeight} ${fontSize}px ${fontFamily}`;
+  // Set text style
+  let fontString = '';
+  if (textStyle.bold) fontString += 'bold ';
+  if (textStyle.italic) fontString += 'italic ';
+  fontString += '24px ';
+  fontString += textStyle.fontFamily || 'Arial';
+
+  ctx.font = fontString;
   ctx.fillStyle = textStyle.color;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
 
-  // Add text shadow for better readability
-  ctx.shadowColor = textStyle.color === '#FFFFFF' ? '#000000' : '#FFFFFF';
-  ctx.shadowBlur = 2;
-  ctx.shadowOffsetX = 1;
-  ctx.shadowOffsetY = 1;
+  // Add text shadow for better visibility
+  ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+  ctx.shadowBlur = 4;
+  ctx.shadowOffsetX = 2;
+  ctx.shadowOffsetY = 2;
 
-  // Draw text in the dedicated frame area below photos
-  let textY;
-  if (frameType === '1cut') {
-    // For 1-cut photos, place text in the reserved space below the photo
-    textY = canvasHeight - 30; // 30px from bottom
-  } else {
-    // For multi-cut photos, use the dedicated text area
-    const photoArea = canvasHeight - 80;
-    textY = photoArea + 40; // Center text in the 80px text area
-  }
-  ctx.fillText(text, canvasWidth / 2, textY);
+  // Draw text
+  ctx.fillText(text, textX, textY);
 
-  ctx.restore();
+  // Reset shadow
+  ctx.shadowColor = 'transparent';
+  ctx.shadowBlur = 0;
+  ctx.shadowOffsetX = 0;
+  ctx.shadowOffsetY = 0;
 }
 
 export async function downloadImage(imageData: string, filename: string): Promise<void> {
-  return new Promise((resolve, reject) => {
-    try {
-      const link = document.createElement('a');
-      link.href = imageData;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      resolve();
-    } catch (error) {
-      reject(error);
-    }
-  });
+  const link = document.createElement('a');
+  link.download = filename;
+  link.href = imageData;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 }
 
 export async function copyImageToClipboard(imageData: string): Promise<void> {
   try {
-    // Convert base64 to blob
+    // Convert data URL to blob
     const response = await fetch(imageData);
     const blob = await response.blob();
 
-    // Use Clipboard API if available
-    if (navigator.clipboard && window.ClipboardItem) {
-      const item = new ClipboardItem({ [blob.type]: blob });
-      await navigator.clipboard.write([item]);
-    } else {
-      throw new Error('Clipboard API not supported');
-    }
+    // Use Clipboard API to copy image
+    await navigator.clipboard.write([
+      new ClipboardItem({
+        [blob.type]: blob
+      })
+    ]);
   } catch (error) {
-    console.error('Failed to copy to clipboard:', error);
-    throw error;
+    console.error('Failed to copy image to clipboard:', error);
+    throw new Error('클립보드 복사에 실패했습니다.');
   }
 }
