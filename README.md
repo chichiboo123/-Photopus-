@@ -1,4 +1,4 @@
-# PhotoPose - AR 포토부스 🎯
+# Photopus - AR 포토부스 🎯
 
 얼굴 인식과 AR 기술을 활용한 어린이 친화적인 포토부스 웹 애플리케이션입니다.
 
@@ -39,7 +39,7 @@ git push origin main
 ### 3. 배포 확인
 
 - **Actions** 탭에서 배포 진행상황 확인
-- 완료 후 `https://yourusername.github.io/PhotoPose/`에서 접근 가능
+- 완료 후 `https://chichiboo123.github.io/Photopus/`에서 접근 가능
 
 ## 로컬 개발
 

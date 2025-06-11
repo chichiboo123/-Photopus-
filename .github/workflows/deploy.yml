@@ -1,4 +1,4 @@
-name: Deploy PhotoPose to GitHub Pages
+name: Deploy Photopus to GitHub Pages
 
 on:
   push:
