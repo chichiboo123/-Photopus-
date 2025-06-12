@@ -1,0 +1,7 @@
+Address issue where Git index becomes locked during simultaneous operations
+
+Resolves the "index.lock" error by providing guidance on identifying and resolving concurrent Git processes.
+
+Replit-Commit-Author: Agent
+Replit-Commit-Session-Id: 22b9806e-248f-4e80-8b5a-e1eaab2c99b6
+Replit-Commit-Screenshot-Url: https://storage.googleapis.com/screenshot-production-us-central1/d07bf463-2c6b-48eb-ab4b-c0d4d8db8cec/282011c2-30ac-4fd0-a5dc-6e687b67a702.jpg
