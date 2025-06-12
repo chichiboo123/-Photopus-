@@ -17,7 +17,7 @@ function AppRoutes() {
 
 function App() {
   // GitHub Pages base path - only in production
-  const basePath = import.meta.env.PROD ? "/Photopus" : "";
+  const basePath = import.meta.env.PROD ? "/-Photopus-" : "";
   
   return (
     <QueryClientProvider client={queryClient}>
