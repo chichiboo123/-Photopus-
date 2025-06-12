@@ -396,7 +396,20 @@ export default function PhotoCapture({ frameType, topperData, onPhotosCaptured, 
   };
 
   const capturePhoto = async () => {
-    if (!videoRef.current || !canvasRef.current) return;
+    if (!videoRef.current || !canvasRef.current || !landmarks) return;
+
+    // Calculate the actual topper sizes for each topper instance
+    const canvas = canvasRef.current;
+    const faceBox = landmarks.boundingBox;
+    const faceWidth = faceBox.width * canvas.width;
+    const baseTopperSize = Math.max(faceWidth * 0.4, 30);
+    const actualTopperSize = baseTopperSize * topperSize;
+
+    // Create a map of topper sizes for each instance
+    const topperSizes: {[key: string]: number} = {};
+    expandedToppers.forEach(({ id }) => {
+      topperSizes[id] = actualTopperSize;
+    });
 
     try {
       const photo = await capturePhotoWithAR(
@@ -409,7 +422,7 @@ export default function PhotoCapture({ frameType, topperData, onPhotosCaptured, 
         flipVertical,
         topperCounts,
         topperPositions,
-        topperSize
+        topperSizes
       );
 
       if (photo) {

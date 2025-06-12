@@ -72,7 +72,7 @@ export async function capturePhotoWithAR(
   flipVertical: boolean,
   topperCounts?: {[key: string]: number},
   topperPositions?: {[key: string]: {x: number, y: number}},
-  topperSize?: number
+  topperSizes?: {[key: string]: number} | number
 ): Promise<string | null> {
   if (!video.videoWidth || !video.videoHeight) return null;
 
@@ -109,7 +109,7 @@ export async function capturePhotoWithAR(
   // Step 2: Draw AR toppers on top (without transforms, using adjusted landmarks)
   if (showTopper && landmarks && landmarks.landmarks.length > 0 && topperData.length > 0) {
     const adjustedLandmarks = adjustLandmarksForFlip(landmarks, flipHorizontal, flipVertical, captureCanvas.width, captureCanvas.height);
-    await drawMultipleARToppers(captureCtx, adjustedLandmarks, topperData, captureCanvas.width, captureCanvas.height, topperCounts, topperPositions, topperSize);
+    await drawMultipleARToppers(captureCtx, adjustedLandmarks, topperData, captureCanvas.width, captureCanvas.height, topperCounts, topperPositions, topperSizes);
   }
 
   // Return base64 image data from capture canvas
@@ -124,7 +124,7 @@ async function drawMultipleARToppers(
   canvasHeight: number,
   topperCounts?: {[key: string]: number},
   topperPositions?: {[key: string]: {x: number, y: number}},
-  topperSize?: number
+  topperSizes?: {[key: string]: number} | number
 ): Promise<void> {
   // Get all topper instances to render
   const expandedToppers: { topper: TopperData; instanceIndex: number; id: string }[] = [];
@@ -142,7 +142,15 @@ async function drawMultipleARToppers(
 
   // Create promises for all toppers to ensure proper async handling
   const topperPromises = expandedToppers.map(async ({ topper, instanceIndex, id }) => {
-    await drawARTopper(ctx, landmarks, topper, canvasWidth, canvasHeight, topperPositions?.[id], topperSize);
+    // Get the appropriate size for this topper instance
+    let instanceTopperSize: number | undefined;
+    if (typeof topperSizes === 'object' && topperSizes) {
+      instanceTopperSize = topperSizes[id];
+    } else if (typeof topperSizes === 'number') {
+      instanceTopperSize = topperSizes;
+    }
+    
+    await drawARTopper(ctx, landmarks, topper, canvasWidth, canvasHeight, topperPositions?.[id], instanceTopperSize);
   });
 
   // Wait for all toppers to be drawn
@@ -173,14 +181,23 @@ async function drawARTopper(
     topperY = topPoint.y * canvasHeight - 50; // Slightly above the landmark
   }
 
-  // Calculate appropriate topper size based on canvas dimensions
-  if (customSize && customSize > 1) {
+  // Use the same topper size calculation as in photo-capture component
+  if (customSize) {
+    // customSize is already the calculated size from photo-capture component
     topperSize = customSize;
   } else {
-    // Default size should be proportional to canvas size
-    topperSize = Math.min(canvasWidth, canvasHeight) * 0.08; // 8% of smallest dimension
-    if (topperSize < 50) topperSize = 50; // Minimum 50 pixels
-    if (topperSize > 200) topperSize = 200; // Maximum 200 pixels
+    // Fallback calculation if no custom size provided
+    // Calculate based on face landmarks if available
+    if (landmarks.landmarks.length > 0) {
+      const faceBox = landmarks.boundingBox;
+      const faceWidth = faceBox.width * canvasWidth;
+      const baseTopperSize = Math.max(faceWidth * 0.4, 30);
+      topperSize = baseTopperSize; // Use base size (100%) as default
+    } else {
+      topperSize = Math.min(canvasWidth, canvasHeight) * 0.08;
+      if (topperSize < 50) topperSize = 50;
+      if (topperSize > 200) topperSize = 200;
+    }
   }
 
   // Clamp position to stay within canvas bounds
