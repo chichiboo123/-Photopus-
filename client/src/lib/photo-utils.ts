@@ -282,56 +282,42 @@ export async function generateFinalImage(
 }
 
 function getCanvasSize(frameType: FrameType, aspectRatio: number = 4/3): { width: number; height: number } {
-  const isVertical = aspectRatio < 1;
-  const textAreaHeight = 80; // Reduced text area height
+  const textAreaHeight = 60; // Space for text
+  const margin = 20; // Margin around photos
+  const gap = 10; // Gap between photos
   
-  // Base dimensions that work well for photos
-  const basePhotoSize = 300;
+  // Use the actual captured aspect ratio to maintain consistency
+  const photoAspectRatio = aspectRatio || (16/9); // Default to 16:9 if not provided
   
   switch (frameType) {
     case '4cut': {
-      if (isVertical) {
-        // Vertical: 2x2 grid
-        const photoWidth = basePhotoSize * aspectRatio;
-        const photoHeight = basePhotoSize;
-        return {
-          width: (photoWidth * 2) + 30, // 2 photos wide + margins
-          height: (photoHeight * 2) + 30 + textAreaHeight
-        };
-      } else {
-        // Horizontal: 2x2 grid
-        const photoWidth = basePhotoSize;
-        const photoHeight = basePhotoSize / aspectRatio;
-        return {
-          width: (photoWidth * 2) + 30,
-          height: (photoHeight * 2) + 30 + textAreaHeight
-        };
-      }
+      // 2x2 grid layout - each photo maintains original aspect ratio
+      const singlePhotoHeight = 200;
+      const singlePhotoWidth = singlePhotoHeight * photoAspectRatio;
+      
+      return {
+        width: (singlePhotoWidth * 2) + (gap * 1) + (margin * 2),
+        height: (singlePhotoHeight * 2) + (gap * 1) + (margin * 2) + textAreaHeight
+      };
     }
     case '2cut': {
-      // Always stack vertically for 2-cut photos
-      const photoWidth = basePhotoSize * aspectRatio;
-      const photoHeight = basePhotoSize;
+      // Vertical stack - each photo maintains original aspect ratio
+      const singlePhotoHeight = 250;
+      const singlePhotoWidth = singlePhotoHeight * photoAspectRatio;
+      
       return {
-        width: photoWidth + 40,
-        height: (photoHeight * 2) + 50 + textAreaHeight
+        width: singlePhotoWidth + (margin * 2),
+        height: (singlePhotoHeight * 2) + (gap * 1) + (margin * 2) + textAreaHeight
       };
     }
     case '1cut': {
-      // Maintain proper aspect ratio for 1-cut photos
-      let photoWidth, photoHeight;
-      if (isVertical) {
-        // For vertical videos, maintain aspect ratio
-        photoHeight = basePhotoSize;
-        photoWidth = photoHeight * aspectRatio;
-      } else {
-        // For horizontal videos, maintain aspect ratio
-        photoWidth = basePhotoSize;
-        photoHeight = photoWidth / aspectRatio;
-      }
+      // Single photo - maintain exact captured aspect ratio
+      const singlePhotoHeight = 400;
+      const singlePhotoWidth = singlePhotoHeight * photoAspectRatio;
+      
       return {
-        width: photoWidth + 40,
-        height: photoHeight + 80 // Space for text below photo
+        width: singlePhotoWidth + (margin * 2),
+        height: singlePhotoHeight + (margin * 2) + textAreaHeight
       };
     }
     default:
@@ -348,30 +334,38 @@ function drawPhotosInGrid(
   aspectRatio: number = 4/3
 ): Promise<void> {
   return new Promise((resolve) => {
-    const photoArea = canvasHeight - 80; // Leave 80px for text area (reduced)
-    const isVertical = aspectRatio < 1;
+    const textAreaHeight = 60;
+    const margin = 20;
+    const gap = 10;
+    const photoAspectRatio = aspectRatio || (16/9);
+    
     let photoWidth: number, photoHeight: number, cols: number, rows: number;
+    let startX: number, startY: number;
 
     switch (frameType) {
       case '4cut':
         cols = 2;
         rows = 2;
-        photoWidth = (canvasWidth - 30) / 2; // 10px margin + 10px gap
-        photoHeight = (photoArea - 30) / 2;
+        photoHeight = 200;
+        photoWidth = photoHeight * photoAspectRatio;
+        startX = margin;
+        startY = margin;
         break;
       case '2cut':
-        // Always stack vertically for 2-cut photos
         cols = 1;
         rows = 2;
-        photoWidth = canvasWidth - 20;
-        photoHeight = (photoArea - 30) / 2;
+        photoHeight = 250;
+        photoWidth = photoHeight * photoAspectRatio;
+        startX = margin;
+        startY = margin;
         break;
       case '1cut':
         cols = 1;
         rows = 1;
-        // For 1-cut photos, reserve space for text below
-        photoWidth = canvasWidth - 40;
-        photoHeight = canvasHeight - 80; // Reserve 40px margin + 40px for text
+        photoHeight = 400;
+        photoWidth = photoHeight * photoAspectRatio;
+        startX = margin;
+        startY = margin;
         break;
       default:
         resolve();
@@ -390,11 +384,12 @@ function drawPhotosInGrid(
       const col = index % cols;
       const row = Math.floor(index / cols);
       
-      const x = frameType === '1cut' ? 20 : 10 + col * (photoWidth + 10);
-      const y = frameType === '1cut' ? 20 : 10 + row * (photoHeight + 10);
+      const x = startX + col * (photoWidth + gap);
+      const y = startY + row * (photoHeight + gap);
 
       const img = new Image();
       img.onload = () => {
+        // Draw photo maintaining exact aspect ratio from capture
         ctx.drawImage(img, x, y, photoWidth, photoHeight);
         loadedCount++;
         if (loadedCount === totalPhotos) {
@@ -420,15 +415,16 @@ function drawTextOverlay(
   canvasHeight: number,
   frameType: FrameType
 ): void {
-  // Position text at the bottom
-  const textY = canvasHeight - 40;
+  // Position text in the bottom text area
+  const textAreaHeight = 60;
+  const textY = canvasHeight - (textAreaHeight / 2);
   const textX = canvasWidth / 2;
 
   // Set text style
   let fontString = '';
   if (textStyle.bold) fontString += 'bold ';
   if (textStyle.italic) fontString += 'italic ';
-  fontString += '24px ';
+  fontString += '20px ';
   fontString += textStyle.fontFamily || 'Arial';
 
   ctx.font = fontString;
@@ -438,9 +434,9 @@ function drawTextOverlay(
 
   // Add text shadow for better visibility
   ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-  ctx.shadowBlur = 4;
-  ctx.shadowOffsetX = 2;
-  ctx.shadowOffsetY = 2;
+  ctx.shadowBlur = 3;
+  ctx.shadowOffsetX = 1;
+  ctx.shadowOffsetY = 1;
 
   // Draw text
   ctx.fillText(text, textX, textY);
