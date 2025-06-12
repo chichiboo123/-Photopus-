@@ -94,7 +94,6 @@ export async function capturePhotoWithAR(
   captureCtx.clearRect(0, 0, captureCanvas.width, captureCanvas.height);
 
   // Step 1: Draw video frame with transforms
-  console.log('Step 1: Drawing video frame', { videoWidth, videoHeight, flipHorizontal, flipVertical });
   captureCtx.save();
   if (flipHorizontal) {
     captureCtx.scale(-1, 1);
@@ -106,21 +105,11 @@ export async function capturePhotoWithAR(
   }
   captureCtx.drawImage(video, 0, 0, videoWidth, videoHeight);
   captureCtx.restore();
-  console.log('Step 1 completed: Video frame drawn');
 
   // Step 2: Draw AR toppers on top (without transforms, using adjusted landmarks)
   if (showTopper && landmarks && landmarks.landmarks.length > 0 && topperData.length > 0) {
-    console.log('Step 2: Drawing toppers', { 
-      showTopper, 
-      landmarksCount: landmarks.landmarks.length, 
-      topperCount: topperData.length,
-      topperData: topperData.map(t => ({ type: t.type, id: t.id }))
-    });
     const adjustedLandmarks = adjustLandmarksForFlip(landmarks, flipHorizontal, flipVertical, captureCanvas.width, captureCanvas.height);
     await drawMultipleARToppers(captureCtx, adjustedLandmarks, topperData, captureCanvas.width, captureCanvas.height, topperCounts, topperPositions, topperSize);
-    console.log('Step 2 completed: Toppers drawn');
-  } else {
-    console.log('Step 2 skipped:', { showTopper, hasLandmarks: !!landmarks, landmarksLength: landmarks?.landmarks.length, topperCount: topperData.length });
   }
 
   // Return base64 image data from capture canvas
@@ -184,7 +173,15 @@ async function drawARTopper(
     topperY = topPoint.y * canvasHeight - 50; // Slightly above the landmark
   }
 
-  topperSize = customSize || Math.min(canvasWidth, canvasHeight) * 0.15;
+  // Calculate appropriate topper size based on canvas dimensions
+  if (customSize && customSize > 1) {
+    topperSize = customSize;
+  } else {
+    // Default size should be proportional to canvas size
+    topperSize = Math.min(canvasWidth, canvasHeight) * 0.08; // 8% of smallest dimension
+    if (topperSize < 50) topperSize = 50; // Minimum 50 pixels
+    if (topperSize > 200) topperSize = 200; // Maximum 200 pixels
+  }
 
   // Clamp position to stay within canvas bounds
   const safeX = Math.max(topperSize / 2, Math.min(topperX, canvasWidth - topperSize / 2));
@@ -200,15 +197,11 @@ async function drawARTopper(
     ctx.restore();
   } else if (topperData.type === 'upload') {
     // Create image and wait for it to load completely before drawing
-    console.log('Drawing upload topper:', { id: topperData.id, dataLength: topperData.data.length });
     const img = new Image();
     img.crossOrigin = 'anonymous';
     
     const imageLoaded = new Promise<boolean>((resolve) => {
-      img.onload = () => {
-        console.log('Upload topper image loaded successfully:', { id: topperData.id, width: img.width, height: img.height });
-        resolve(true);
-      };
+      img.onload = () => resolve(true);
       img.onerror = () => {
         console.error('Failed to load topper image:', topperData.data);
         resolve(false);
@@ -218,7 +211,6 @@ async function drawARTopper(
 
     const loaded = await imageLoaded;
     if (loaded && img.complete) {
-      console.log('Drawing upload topper at position:', { safeX, safeY, topperSize });
       ctx.save();
       ctx.translate(safeX, safeY);
       try {
@@ -229,13 +221,10 @@ async function drawARTopper(
           topperSize,
           topperSize
         );
-        console.log('Upload topper drawn successfully');
       } catch (error) {
         console.error('Error drawing topper image:', error);
       }
       ctx.restore();
-    } else {
-      console.log('Upload topper not drawn - image not loaded');
     }
   }
 }
