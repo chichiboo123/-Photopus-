@@ -1,3 +1,4 @@
+
 name: Deploy to GitHub Pages
 
 on:
@@ -30,16 +31,15 @@ jobs:
       run: npm ci
       
     - name: Build site
-      run: |
-        NODE_ENV=production npx vite build --base="/-Photopus-/" --outDir=dist-gh-pages
-        
+      run: node build-gh-pages.js
+      
     - name: Setup Pages
       uses: actions/configure-pages@v4
       
     - name: Upload artifact
       uses: actions/upload-pages-artifact@v3
       with:
-        path: './dist-gh-pages'
+        path: './docs'
 
   deploy:
     environment:
