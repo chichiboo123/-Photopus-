@@ -1,4 +1,5 @@
 import { build } from 'vite';
+import react from '@vitejs/plugin-react';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -10,6 +11,9 @@ async function buildForGitHubPages() {
     
     await build({
       base: '/-Photopus-/',
+      plugins: [react({
+        jsxRuntime: 'automatic'
+      })],
       root: path.resolve(__dirname, 'client'),
       build: {
         outDir: path.resolve(__dirname, 'docs'),
